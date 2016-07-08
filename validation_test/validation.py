@@ -1,12 +1,33 @@
 #! encoding = utf-8
 import numpy as np
 
+# sample result file list
+RESULT_LIST = ['v1result_single_bg5_mode1.csv',
+               'v1result_single_bg5_mode1_nobase.csv',
+               'v1result_single_bg5_mode1_spline.csv',
+               'v1result_single_bg5_mode2.csv',
+               'v1result_fullband_bg5_mode1.csv',
+               'v1result_fullband_bg5_mode1_nobase.csv',
+               'v1result_fullband_bg5_mode1_spline.csv'
+              ]
+
+# validation result file list
+VAL_LIST = ['val_single_bg5_mode1.csv',
+            'val_single_bg5_mode1_nobase.csv',
+            'val_single_bg5_mode1_spline.csv',
+            'val_single_bg5_mode2.csv',
+            'val_fb_bg5_mode1.csv',
+            'val_fb_bg5_mode1_nobase.csv',
+            'val_fb_bg5_mode1_spline.csv',
+           ]
+
+
 def res_val_pair(result_list, val_list):
     ''' Generate dictionary pair a_dict[res]=val '''
     a_dict = {}
     # check length match
     if len(result_list) != len(val_list):
-        RaiseError(IndexError)
+        raise IndexError('Number of files does not match')
     else:
         for i in range(len(result_list)):
             a_dict[result_list[i]] = val_list[i]
@@ -31,7 +52,7 @@ def validate_data(file1, file2, tor=1e-6):
         return 0
     else:
         diff = data1 - data2
-        if np.average(np.power(diff, 2)) < tor:
+        if np.linalg.norm(diff) < tor:
             return 1
         else:
             return 2
@@ -60,27 +81,7 @@ if __name__ == '__main__':
     print('*'*20)
     print('Validating ...')
 
-    # sample result file list
-    result_list = ['v1result_single_bg5_mode1.csv',
-                   'v1result_single_bg5_mode1_nobase.csv',
-                   'v1result_single_bg5_mode1_spline.csv',
-                   'v1result_single_bg5_mode2.csv',
-                   'v1result_fullband_bg5_mode1.csv',
-                   'v1result_fullband_bg5_mode1_nobase.csv',
-                   'v1result_fullband_bg5_mode1_spline.csv'
-                  ]
-
-    # validation result file list
-    val_list = ['val_single_bg5_mode1.csv',
-                'val_single_bg5_mode1_nobase.csv',
-                'val_single_bg5_mode1_spline.csv',
-                'val_single_bg5_mode2.csv',
-                'val_fb_bg5_mode1.csv',
-                'val_fb_bg5_mode1_nobase.csv',
-                'val_fb_bg5_mode1_spline.csv',
-               ]
-
-    pairs = res_val_pair(result_list, val_list)
+    pairs = res_val_pair(RESULT_LIST, VAL_LIST)
     for res, val in pairs.items():
         status_code = validate_data(res, val)
         print_status(status_code, res, val)
