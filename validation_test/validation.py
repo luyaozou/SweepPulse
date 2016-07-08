@@ -1,5 +1,7 @@
 #! encoding = utf-8
 import numpy as np
+import os
+import filecmp
 
 # sample result file list
 RESULT_LIST = ['v1result_single_bg5_mode1.csv',
@@ -33,6 +35,19 @@ def res_val_pair(result_list, val_list):
             a_dict[result_list[i]] = val_list[i]
 
     return a_dict
+
+
+def validate_file(file1, file2):
+    ''' Validate file by hash value.
+        Return Boolean: True -- identical
+                        False -- nonidentical
+    '''
+
+    # check file size first
+    if os.path.getsize(file1) != os.path.getsize(file2):
+        return False
+    else:
+        return filecmp.cmp(file1, file2)
 
 
 def validate_data(file1, file2, tor=1e-6):
@@ -83,7 +98,12 @@ if __name__ == '__main__':
 
     pairs = res_val_pair(RESULT_LIST, VAL_LIST)
     for res, val in pairs.items():
-        status_code = validate_data(res, val)
+        if validate_file(res, val):
+            # no need for data validation if files are identical
+            status_code = 0
+        else:
+            # load data and test data
+            status_code = validate_data(res, val)
         print_status(status_code, res, val)
         overall_status_code = max(overall_status_code, status_code)
 
