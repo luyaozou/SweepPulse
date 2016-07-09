@@ -7,6 +7,14 @@ import numpy as np
 from scipy import interpolate
 from scipy.optimize import leastsq
 
+# ------------------------------------------
+# ------ MESSAGE CONSTANT DECLARATION ------
+# ------------------------------------------
+FILE_ERR_MSG = {0: '',                              # Silent
+                1: '{:s} does not exist',           # FileNotFoundError
+                2: '{:s} format is not supported',  # Format Issue
+                }
+
 # ----------------------------------
 # ------ Function Declaration ------
 # ----------------------------------
@@ -117,12 +125,35 @@ def extract_sig_bg(freq, inten, bg, sweep, delay, single_freq):
 
 
 #--------- start refactoring here ----------
+def box_car(x, y, win):
+    ''' Boxcar smooth.
+
+    Arguments:
+    x   -- x frequency array, np.array
+    y   -- y intensity array, np.array
+    win -- box-car window, integer
+
+    Returns:
+    x_new -- new x array, np.array
+    y_new -- new y array, np.array
+    '''
+
+    if win == 1:
+        return x, y
+    else:
+        x_new = x[win//2:-win//2+1]
+        y_new = np.convolve(y, np.ones(win), 'valid')/win
+        return x_new, y_new
 
 
 def box_win(win):
     ''' Verify boxcar window.
-            win -- box-car window, integer
-        Returns: win_verified -- verified box-car window, odd integer
+
+    Arguments:
+    win -- box-car window, integer
+
+    Returns:
+    win_verified -- verified box-car window, odd integer
     '''
 
     win_verified = abs(win)
@@ -134,28 +165,15 @@ def box_win(win):
         return win_verified
 
 
-def box_car(x, y, win):
-    ''' Boxcar smooth.
-            x   -- x frequency array, np.array
-            y   -- y intensity array, np.array
-            win -- box-car window,    integer
-        Returns: x_new -- new x array, np.array
-                 y_new -- new y array, np.array
-    '''
-
-    if win == 1:
-        return x, y
-    else:
-        x_new = x[win//2:-win//2+1]
-        y_new = np.convolve(y, np.ones(win), 'valid')/win
-        return x_new, y_new
-
-
 def db_wb(y, if_spline):
     ''' Wide band debaseline.
-            y -- y intensity data array, np.array
-            if_spline -- spline fit option, boolean
-        Returns: y_db
+
+    Arguments:
+    y -- y intensity data array, np.array
+    if_spline -- spline fit option, boolean
+
+    Returns:
+    y_db, np.array
     '''
 
     y_db = db_poly(y, deg=1)
@@ -167,11 +185,149 @@ def db_wb(y, if_spline):
     return y_db
 
 
-def output(out_name, out_data):
-    ''' Output data in csv format
-            out_name -- output data file name, str
-            out_data -- output xy data,        np.array
-        Returns: None
+def err_msg_str(f, err_code, msg=FILE_ERR_MSG):
+    ''' Generate file error message string
+
+    Arguments:
+    f        -- file name, str
+    err_code -- error code, int
+    msg      -- error message, dict
+
+    Returns:
+    msg_str -- formated error message, str
+    '''
+
+    return (msg[err_code]).format(f)
+
+
+def load_data(args):
+    ''' Load all data files specified from input arguments.
+
+    Arguments:
+    args -- input argument, argparse Object
+
+    Returen:
+    freq -- frequency waveform, np.array 1D
+    inten -- intensity waveform, np.array 1D/2D
+    '''
+
+    # load intensity file
+    inten = load_single_file(args.inten[0])
+    # exit if intensity file is not loaded correctly
+    if not inten:
+        exit()
+
+    # load lo file if available
+    if args.lo:
+        lo = load_single_file(args.lo[0])
+        sweep_num = np.count_nonzero(np.delete(lo*np.roll(lo, 1), 0) < 0)
+        sweep_up = lo[0] < 0
+    else:
+        # no lo file, invoke interactive interface
+        sweep_num, sweep_up = interactive()
+
+    # number of points in a single sweep
+    pts = inten.shape[0] / sweep_num
+
+    # try bandwidth
+    if args.bdwth:
+        bdwth = args.bdwth[0]
+    else:
+        bdwth = 1.
+
+    if args.cf:
+        try:
+            center_freq = float(args.cf[0])
+        except ValueError:
+            center_freq = load_single_file(args.cf[0])
+            bdwth = center_freq[1] - center_freq[0]
+    else:
+        center_freq = 0
+
+    freq = reconstr_freq(center_freq, pts, sweep_up=sweep_up, bdwth=bdwth)
+
+    return freq, inten
+
+
+def load_single_file(file_name):
+    ''' Load single data file & raise exceptions.
+
+    Arguments:
+    file_name -- input file name, str
+
+    Returns:
+    data -- np.array
+    '''
+
+    try:
+        data = np.loadtxt(file_name, delimiter=',')
+        return data
+    except FileNotFoundError:
+        print(err_msg_str(file_name, 1))
+        return None
+    except ValueError:
+        print(err_msg_str(file_name, 2))
+        return None
+
+
+def interactive():
+    ''' Command line interactive interface for sweep information input.
+    For mode 0, i.e. no LO data available only.
+
+    Returns:
+    sweep_num -- number of full sweeps, int
+    sweep_up -- first sweep increases in frequency, boolean
+    '''
+
+    while True:     # Get number of sweeps from user input & Error handling
+        try:
+            typed = input('Input number of full sweeps: ').split()
+            sweep_num = int(typed[0])
+        except ValueError:
+            typed = input('''Must be an integer! Retype: ''').split()
+
+    # Ask if the first sweep goes up
+    typed = input('Does the first sweep go up? Y|n ')
+    sweep_up = typed in ('y', 'Y', 'yes', 'Yes', 'YES')
+
+    return sweep_num, sweep_up
+
+
+def reconstr_freq(center_freq, pts, sweep_up=True, bdwth=1.):
+    ''' Reconstruct frequency array.
+
+    Arguments:
+    center_freq -- center frequency of each sweep. float or np.array
+    pts -- dimension of the frequency array. int
+    **sweep_up -- first sweep frequency increases. defautl True. boolean
+    **bdwth -- sweep bandwidth (MHz), default 1. float
+
+    Returns:
+    freq -- frequency array, np.array 1D/2D
+    '''
+
+    if sweep_up:
+        single_band = bdwth * (np.arange(pts)/pts - 0.5)
+    else:
+        single_band = bdwth * (0.5 - np.arange(pts)/pts)
+
+    if isinstance(center_freq, np.ndarray):
+        freq = np.tile(single_band, (len(center_freq), 1)).transpose() + \
+               np.tile(center_freq, (pts, 1))
+    else:
+        freq = single_band + center_freq
+
+    return freq
+
+
+def save_output(out_name, out_data):
+    ''' Output data in csv format.
+
+    Arguments:
+    out_name -- output data file name, str
+    out_data -- output xy data, np.array
+
+    Returns: None
     '''
 
     np.savetxt(out_name, out_data, header='freq,inten', delimiter=',',
@@ -182,59 +338,40 @@ def output(out_name, out_data):
 
 
 def arg():
-    ''' Input arguments parser
-        Returns: argparse Object
-    '''
+    ''' Input arguments parser. Returns: argparse Object.'''
 
     parser = argparse.ArgumentParser(description=__doc__,
                                     epilog='--- Luyao Zou, April 2015 ---')
     parser.add_argument('inten', nargs=1, help='Intensity data file')
     parser.add_argument('-bg', nargs=1, type=int,
                         help='''The ordinal number of the full sweep to use
-                          as background. If this argument is not specified,
-                          assume no background subtraction is necessary
-                          and all sweep cycles are averaged together. ''')
+                                as background. If not specified,
+                                assume no background subtraction is required,
+                                and all sweep cycles are averaged together. ''')
     parser.add_argument('-cf', nargs=1,
                         help='''Single center frequency (MHz) or a file listing
-                          several center frequencies. If neither specified,
-                          assume it's a single frequency data and set at 0. ''')
-    parser.add_argument('-win', nargs=1, type=float,
-                        help='''Full frequency sweep window (MHz). If -win is
-                            not specified while freq file is available,
-                            get sweep window from the difference of the
-                            first two data points in the freq file, assuming
-                            frequency is evenly spaced and matches window.''')
+                                several center frequencies. If neither
+                                specified, set at 0, and assume intensity is
+                                a single sweep scan.''')
+    parser.add_argument('-bdwth', nargs=1, type=float,
+                        help='''Full frequency sweep band width (MHz).
+                                If not specified while freq file is available,
+                                get sweep window from the difference of the
+                                first two data points in the freq file,
+                                assuming frequency data points are evenly spaced
+                                and matches the band width. Default is 1.''')
     parser.add_argument('-box', nargs=1, type=int,
-                        help='''Boxcar smooth window. Must be an odd integer.
-                            Optional''')
-    parser.add_argument('-delay', nargs=1, type=int,
-                        help=''' Delay of detector response by number of
-                             data points. Default is 0 ''')
-    parser.add_argument('-o', nargs=1, help='Output file name. Optional')
-    parser.add_argument('-mode', nargs=1, type=int,
-                        help='''Sweep Mode: How does the script use the LO file.
-
-                            [ 0 ]: No LO file. Interactive input questions
-                               will pop up. DEFAULT w/o LO
-
-                            [ 1 ]: Partial LO usage. Only use LO file to
-                               determine the number of full sweeps, and
-                               the phase of the first sweep (up or down).
-                               Assumes linear sweep and synthesize frequency.
-                               DEFAULT w/ LO
-
-                            [ 2 ]: Full LO usage. Use exact LO data points to
-                               map time to frequency. Accepts any waveforms.
-                               May create non-even distribution of frequency
-                               sampling due to the LO voltage variation.''')
+                        help='Boxcar smooth window. Must be an odd integer.')
     parser.add_argument('-lo', nargs=1,
-                        help='LO file. Not required if sweep mode is 0')
+                        help='''LO file. If not specified, command line
+                                interactive questions will be invoked.''')
+    parser.add_argument('-o', nargs=1,
+                        help='''Output file name. If not specified,
+                                default name will be used.''')
     parser.add_argument('-spline', action='store_true',
                         help='Fit spline to subtract baseline. Optional')
     parser.add_argument('-nobase', action='store_true',
-                        help='Disable ALL baseline removal functionality. Optional')
-    parser.add_argument('-diff', action='store_true',
-                        help='Take derivative to subtract baseline. Optional')
+                        help='Disable ALL baseline removal functionality.')
 
     return parser.parse_args()
 
@@ -242,3 +379,4 @@ def arg():
 if __name__ == '__main__':
 
     input_args = arg()
+    freq, inten = load_data(input_args)

@@ -11,7 +11,7 @@ RESULT_LIST = ['v1result_single_bg5_mode1.csv',
                'v1result_fullband_bg5_mode1.csv',
                'v1result_fullband_bg5_mode1_nobase.csv',
                'v1result_fullband_bg5_mode1_spline.csv'
-              ]
+               ]
 
 # validation result file list
 VAL_LIST = ['val_single_bg5_mode1.csv',
@@ -21,11 +21,12 @@ VAL_LIST = ['val_single_bg5_mode1.csv',
             'val_fb_bg5_mode1.csv',
             'val_fb_bg5_mode1_nobase.csv',
             'val_fb_bg5_mode1_spline.csv',
-           ]
+            ]
 
 
 def res_val_pair(result_list, val_list):
     ''' Generate dictionary pair a_dict[res]=val '''
+
     a_dict = {}
     # check length match
     if len(result_list) != len(val_list):
@@ -39,8 +40,8 @@ def res_val_pair(result_list, val_list):
 
 def validate_file(file1, file2):
     ''' Validate file by hash value.
-        Return Boolean: True -- identical
-                        False -- nonidentical
+    Return Boolean: True -- identical
+                    False -- nonidentical
     '''
 
     # check file size first
@@ -52,10 +53,11 @@ def validate_file(file1, file2):
 
 def validate_data(file1, file2, tor=1e-6):
     ''' Validate data in file1 and file2.
-        Return status_code: 0 -- identical
-                            1 -- values agree within tolerance
-                            2 -- disagree
+    Return status_code: 0 -- identical
+                        1 -- values agree within tolerance
+                        2 -- disagree
     '''
+
     # load data
     data1 = np.loadtxt(file1, delimiter=',', skiprows=1)
     data2 = np.loadtxt(file2, delimiter=',', skiprows=1)
@@ -91,7 +93,8 @@ if __name__ == '__main__':
     overall_status_code = 0
     overall_status_msg = {0: 'Validation Passed !',
                           1: 'Validation Acceptable ... Data agree within tolerance.',
-                          2: 'Validation Failed ... Disagreements found in test data'}
+                          2: 'Validation Failed ... Disagreements found in test data'
+                          }
 
     print('*'*20)
     print('Validating ...')
