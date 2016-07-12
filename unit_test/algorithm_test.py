@@ -29,14 +29,16 @@ class BoxcarSmooth(unittest.TestCase):
         print('\nTest box-car algorithm output')
 
         # test box-car win=1 -- output original
-        test_x_out, test_y_out = sp.box_car(self.box_x_in, self.box_y_in, 1)
+        test_x_out = sp.box_car(self.box_x_in, 1)
+        test_y_out = sp.box_car(self.box_y_in, 1)
         self.assertEqual(self.box_x_in.shape, test_x_out.shape)
         self.assertEqual(self.box_y_in.shape, test_y_out.shape)
         self.assertTrue(np.linalg.norm(self.box_x_in - test_x_out) < TOL)
         self.assertTrue(np.linalg.norm(self.box_y_in - test_y_out) < TOL)
         # test box-car win=3 -- real case
 
-        test_x_out, test_y_out = sp.box_car(self.box_x_in, self.box_y_in, 3)
+        test_x_out = sp.box_car(self.box_x_in, 3)
+        test_y_out = sp.box_car(self.box_y_in, 3)
         self.assertEqual(self.box_x_out.shape, test_x_out.shape)
         self.assertEqual(self.box_y_out.shape, test_y_out.shape)
         self.assertTrue(np.linalg.norm(self.box_x_out - test_x_out) < TOL)
@@ -85,6 +87,30 @@ class DataLoader(unittest.TestCase):
         print('\nTest data loader')
 
         pass
+
+
+class ReshapeArray(unittest.TestCase):
+    ''' Test array manuplication and reshape routines. '''
+
+    N = 100
+    sgl_int = np.arange(N)        # intensity 1D waveform
+    arr_int = np.tile(sgl_int, (N, 1)).transpose() # intensity 2D wave
+    delay = 5
+    arr_freq = 1
+
+    def test_delay_inten(self):
+
+        goal_sgl = np.append(np.arange(self.N-self.delay)+self.delay, np.arange(self.delay))
+        goal_arr = np.tile(goal_sgl, (self.N, 1)).transpose()
+
+        test_sgl = sp.delay_inten(self.sgl_int, self.delay)
+        test_arr = sp.delay_inten(self.arr_int, self.delay)
+
+        print('\nTest delay intensity 1D array')
+        self.assertTrue(np.linalg.norm(goal_sgl - test_sgl) < TOL)
+        print('\nTest delay intensity 2D array')
+        self.assertTrue(np.linalg.norm(goal_arr - test_arr) < TOL)
+
 
 
 if __name__ == '__main__':

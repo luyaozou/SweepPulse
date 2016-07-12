@@ -15,135 +15,52 @@ FILE_ERR_MSG = {0: '',                              # Silent
                 2: '{:s} format is not supported',  # Format Issue
                 }
 
-# ----------------------------------
-# ------ Function Declaration ------
-# ----------------------------------
+# -------------------------------------------------------
+# ------ Function Declaration (Alphabetical Order) ------
+# -------------------------------------------------------
 
-def box_smooth(a, box_win):
-    ''' Boxcar smooth routine. Accepts only vector '''
-    return np.convolve(a, np.ones(box_win), 'valid')/box_win
+def avg_inten(inten, pts, sweep_num):
+    ''' Average all odd intensity sweeps togethere.
 
-def glue_sweep(y):
-    ''' shift each sweep intensity to make the end of the previous sweep is
-    equal to the start of the next sweep, so that the spectrum is
-    continuous. Accepts matrix '''
-    # Get the difference of the end of col and the start of col+1
-    col_shift = np.roll(y[-1, :], 1) - y[0, :]
-    col_shift[0] = 0
-    col_shift_accum = np.cumsum(col_shift)
-    # Apply shift correction to all columns
-    return y + np.tile(col_shift_accum, (y.shape[0], 1))
+    Arguments:
+    inten -- intensity waveform, 1D/2D np.array
+    pts   -- number of data points in a single sweep, int
+    sweep_num -- number of sweeps, int
 
-def db_spline(y):
-    ''' Background subtraction by fitting spline to the baseline.
-    Accepts only vector '''
-    # Because of the change of refraction index, the background
-    # does not exactly match the signal. This creates a curved baseline
-    # after background subtraction. Try to fit a B-spline to the
-    # baseline.
-    x = np.arange(len(y))
-    # Construct weight
-    weight = np.exp(-np.power(y - y.max(), 2))
-    # Interpolate spline
-    spline = interpolate.UnivariateSpline(x, y, w=weight, k=5)
-    return y - spline(x)
+    Returns:
+    inten_avg -- averaged intenisity array, 1D/2D np.array
+    '''
 
-def db_diff(freq, inten):
-    ''' Derivative. Accepts only vector '''
-    inten_diff = np.diff(inten)
-    freq_diff = freq[:-1] + np.diff(freq)/2
-    return freq_diff, inten_diff
 
-def db_poly(y, deg):
-    ''' Polynomial baseline clean. Accepts on vector '''
-    x = np.arange(len(y))
-    popt = np.polyfit(x, y, deg)
-    return y - np.polyval(popt, x)
-
-def sinusoidal_res(p, x, y):
-    ''' Residual function of a sinusoidal wave to match the baseline
-    wiggle. This includes a short-period sine wave to correct the
-    detector response, and a long-period sine wave to correct the
-    overall wavy structure after flatten the sweeps. '''
-    # y^ = a*sin(2pi*x/T + phi) + m*x + b
-    a, t, phi = p
-    res = y - a*np.sin(2*np.pi*x/t + phi)
-    return res
-
-def sinusoidal_eval(x, p):
-    ''' Evaluate the sinusoidal wave '''
-    return p[0]*np.sin(2*np.pi*x/p[1] + p[2])
-
-def db_sinusoidal(y, init):
-    ''' Apply linear shift correction on a sweep. Accepts only vector '''
-    x = np.arange(len(y))
-    plsq, pcoval = leastsq(sinusoidal_res, init, args=(x, y))
-    shift = sinusoidal_eval(x, plsq)
-    return y - shift
-
-def extract_sig_bg(freq, inten, bg, sweep, delay, single_freq):
-    ''' Seperate signal waveforms from background waveforms '''
-    # Check if the backgroud is the last sweep
-    bg_last_sweep = (bg == sweep)
-
-    if bg_last_sweep and delay:
-        if single_freq:
-            # If the background is the last sweep,  we have to drop the last
-            # few points in case of any detector delay
-            inten_signal = inten[delay:sweep_range]
-            inten_bg = inten[(bg-1)*sweep_range+delay:]
-            freq = freq[:-delay]
-        else:
-            inten_signal = inten[delay:sweep_range, :]
-            inten_bg = inten[(bg-1)*sweep_range+delay:, :]
-            freq = freq[:-delay, :]
-    # If the background is not the last sweep, we can use the full sweep
-    elif delay:
-        if single_freq:
-            inten_signal = inten[delay:sweep_range+delay]
-            inten_bg = inten[(bg-1)*sweep_range+delay:bg*sweep_range+delay]
-        else:
-            inten_signal = inten[delay:sweep_range+delay, :]
-            inten_bg = inten[(bg-1)*sweep_range+delay:bg*sweep_range+delay, :]
-    # If there is no delay
-    elif single_freq:
-        inten_signal = inten[:sweep_range]
-        inten_bg = inten[(bg-1)*sweep_range:bg*sweep_range]
+    # Separate odd and even numbers of cycles and sum up
+    if len(inten.shape)==1:
+        inten_odd = np.zeros(pts)
+        for i in range(sweep_num//2):
+            inten_odd += inten[i*2*pts:(i*2+1)*pts]
     else:
-        inten_signal = inten[:sweep_range, :]
-        inten_bg = inten[(bg-1)*sweep_range:bg*sweep_range, :]
+        inten_odd = np.zeros((pts, inten.shape[1]))
+        for i in range(sweep_num//2):
+            inten_odd += inten[i*2*pts:(i*2+1)*pts, :]
 
-    # Check if background is at an odd-number sweep or an even-number sweep.
-    # If even, the sequency of the intensity needs to be flipped to match
-    # the 1st sweep.
-    if not (bg % 2):  # even-number background
-        inten_bg = np.flipud(inten_bg)
-    else:
-        pass
-
-    return freq, inten_signal, inten_bg
+    return inten_odd / (sweep_num//2)
 
 
-#--------- start refactoring here ----------
-def box_car(x, y, win):
+def box_car(x, win):
     ''' Boxcar smooth.
 
     Arguments:
     x   -- x frequency array, np.array
-    y   -- y intensity array, np.array
     win -- box-car window, integer
 
     Returns:
     x_new -- new x array, np.array
-    y_new -- new y array, np.array
     '''
 
     if win == 1:
-        return x, y
+        return x
     else:
-        x_new = x[win//2:-win//2+1]
-        y_new = np.convolve(y, np.ones(win), 'valid')/win
-        return x_new, y_new
+        x_new = np.convolve(x, np.ones(win), 'valid')/win
+        return x_new
 
 
 def box_win(win):
@@ -165,24 +82,117 @@ def box_win(win):
         return win_verified
 
 
-def db_wb(y, if_spline):
-    ''' Wide band debaseline.
+def delay_inten(inten, delay):
+    ''' Delay intensity array.
 
     Arguments:
-    y -- y intensity data array, np.array
-    if_spline -- spline fit option, boolean
+    inten -- intensity array, nd.array
+    delay -- delay number of points.
 
     Returns:
-    y_db, np.array
+    inten_new -- delayed intensity array
     '''
 
-    y_db = db_poly(y, deg=1)
-    if if_spline:
-        y_db = db_spline(y_db)
+    dim = inten.shape[0]
+    # check the dimension of intensity array
+    if len(inten.shape)==1:
+        inten_new = np.roll(inten, dim - delay)
     else:
-        pass
+        inten_new = np.roll(inten, dim - delay, axis=0)
 
-    return y_db
+    return inten_new
+
+
+def db_poly(y, deg):
+    ''' Polynomial baseline clean.
+
+    Arguments:
+    y -- input array, 1D np.array
+
+    Returns:
+    y_db -- debaselined array, 1D np.array
+    '''
+
+    x = np.arange(len(y))
+    popt = np.polyfit(x, y, deg)
+
+    return y - np.polyval(popt, x)
+
+
+def db_spline(y):
+    ''' Background subtraction by fitting spline to the baseline.
+
+    Arguments:
+    y -- input array, 1D np.array
+
+    Returns:
+    y_db -- debaselined array, 1D np.array
+    '''
+
+    # Because of the discharge disturbance, the background does not exactly
+    # match the signal. This creates a curved baseline after background
+    # subtraction. Try to fit a B-spline to the baseline.
+    x = np.arange(len(y))
+    # Construct weight
+    weight = np.exp(-np.power(y - y.max(), 2))
+    # Interpolate spline
+    spline = interpolate.UnivariateSpline(x, y, w=weight, k=5)
+
+    return y - spline(x)
+
+
+def flat_wave(freq, inten):
+    ''' Flatten frequency and intensity arrays.
+
+    Arguments:
+    freq  -- frequency array, 1D/2D np.array
+    inten -- intensity array, 1D/2D np.array
+
+    Returns:
+    freq_flat  -- flattened frequency array, 1D np.array
+    inten_flat -- flattened intensity array, 1D np.array
+    '''
+
+    if len(inten.shape)==1:
+        return freq, inten
+    else:
+        # Flatten frequency and intensity matrices into vector waveforms
+        # and sort frequency
+        freq_flat_index = np.argsort(freq.flatten('F'))
+        freq_flat = freq.flatten('F')[freq_flat_index]
+        inten_flat = inten_db.flatten('F')[freq_flat_index]
+
+        # reconstruct intensity matrix
+        inten_recon = inten_flat.reshape(inten.shape, order='F')
+        # stitch intensity
+        inten = glue_sweep(inten_recon)
+        # flatten intensity again
+        inten_flat = inten.flatten('F')
+
+        return freq_flat, inten_flat
+
+
+def glue_sweep(y):
+    ''' shift each sweep intensity to make the end of the previous sweep is
+    equal to the start of the next sweep, so that the spectrum is
+    continuous.
+
+    Arguments:
+    y -- intensity array, 2D np.array
+
+    Returns:
+    y_stiched -- stiched intensity array, 2D np.array
+    '''
+
+    # Get the difference of the end of col and the start of col+1
+    col_shift = np.roll(y[-1, :], 1) - y[0, :]
+    col_shift[0] = 0
+    col_shift_accum = np.cumsum(col_shift)
+
+    # Apply shift correction to all columns
+    y_stiched = y + np.tile(col_shift_accum, (y.shape[0], 1))
+
+    return y_stiched
 
 
 def err_msg_str(f, err_code, msg=FILE_ERR_MSG):
@@ -201,7 +211,8 @@ def err_msg_str(f, err_code, msg=FILE_ERR_MSG):
 
 
 def load_data(args):
-    ''' Load all data files specified from input arguments.
+    ''' Load all data files specified from input arguments. Perform background
+    subtraction and data truncation according to input specifications.
 
     Arguments:
     args -- input argument, argparse Object
@@ -214,7 +225,7 @@ def load_data(args):
     # load intensity file
     inten = load_single_file(args.inten[0])
     # exit if intensity file is not loaded correctly
-    if not inten:
+    if isinstance(inten, type(None)):
         exit()
 
     # load lo file if available
@@ -227,14 +238,15 @@ def load_data(args):
         sweep_num, sweep_up = interactive()
 
     # number of points in a single sweep
-    pts = inten.shape[0] / sweep_num
+    pts = inten.shape[0] // sweep_num
 
-    # try bandwidth
+    # set bandwidth
     if args.bdwth:
         bdwth = args.bdwth[0]
     else:
         bdwth = 1.
 
+    # reconstruct frequency array
     if args.cf:
         try:
             center_freq = float(args.cf[0])
@@ -246,21 +258,37 @@ def load_data(args):
 
     freq = reconstr_freq(center_freq, pts, sweep_up=sweep_up, bdwth=bdwth)
 
+    # roll the intensity array if detector delay is specified
+    if args.delay:
+        inten = delay_inten(inten, args.delay[0])
+    else:
+        pass
+
+    if args.bg: # background subtraction if db option specified
+        sub_bg(inten, args.bg[0], pts)
+    else:       # average intensity if db option not specified
+        avg_inten(inten, pts, sweep_num)
+
+    # truncate freq & inten array if delay is specified
+    if args.delay:
+        freq, inten = trunc(freq, inten, args.delay[0])
+
     return freq, inten
 
 
-def load_single_file(file_name):
+def load_single_file(file_name, delm=','):
     ''' Load single data file & raise exceptions.
 
     Arguments:
     file_name -- input file name, str
+    delm      -- delimiter, str
 
     Returns:
     data -- np.array
     '''
 
     try:
-        data = np.loadtxt(file_name, delimiter=',')
+        data = np.loadtxt(file_name, delimiter=delm)
         return data
     except FileNotFoundError:
         print(err_msg_str(file_name, 1))
@@ -293,6 +321,68 @@ def interactive():
     return sweep_num, sweep_up
 
 
+def proc_nb(freq, inten, args):
+    ''' Process narrow band (single sweep) according to input specifications.
+        Inclues: box-car smooth in each sweep;
+                 linear correction of baseline in each sweep;
+
+    Arguments:
+    freq  -- freuency array, 1D/2D np.array
+    inten -- intensity array, 1D/2D np.array
+    args  -- input arguments, argparse Object
+
+    Returns:
+    freq_p/b  -- processed frequency array, 1D/2D np.array
+    inten_p/b -- processed intensity array, 1D/2D np.array
+    '''
+
+    if args.box:    # do box-car smooth
+        box_win = (args.box[0])
+        if len(inten.shape)==1:
+            freq_b = box_car(freq, box_win)
+            inten_b = box_car(inten, box_win)
+        else:
+            freq_b = np.apply_along_axis(box_car, 0, freq, box_win)
+            inten_b = np.apply_along_axis(box_car, 0, inten, box_win)
+    else:
+        pass
+
+    if args.nobase:     # if no baseline removal is specified
+        return freq_b, inten_b
+    else:
+        # Apply linear correction on each sweep
+        inten_p = np.apply_along_axis(db_poly, 0, inten_b, 1)
+        if args.spline:
+            inten_p = np.apply_along_axis(db_spline, 0, inten_b, 1)
+        return freq_p, inten_p
+
+
+def proc_wb(x, y, args):
+    ''' Process wide band (full stiched spectrum).
+
+    Arguments:
+    x    -- x frequency data array, 1D np.array
+    y    -- y intensity data array, 1D np.array
+    args -- input arguments, argparse Object
+
+    Returns:
+    y_db -- debaselined, 1D np.array
+    '''
+
+    if args.nobase:
+        y_db = y
+    else:
+        y_db = db_poly(y, deg=1)
+        if args.spline:
+            y_db = db_spline(y_db)
+        else:
+            pass
+
+    data = np.columns_stack((x, y))
+
+    return data
+
+
 def reconstr_freq(center_freq, pts, sweep_up=True, bdwth=1.):
     ''' Reconstruct frequency array.
 
@@ -320,15 +410,20 @@ def reconstr_freq(center_freq, pts, sweep_up=True, bdwth=1.):
     return freq
 
 
-def save_output(out_name, out_data):
+def save_output(data, args):
     ''' Output data in csv format.
 
     Arguments:
-    out_name -- output data file name, str
-    out_data -- output xy data, np.array
+    data -- output xy data, 2D np.array
+    args -- input arguments, argparse Object
 
     Returns: None
     '''
+
+    if args.o:
+        out_name = args.o[0]
+    else:
+        out_name = 'SPlot_' + args.inten[0]
 
     np.savetxt(out_name, out_data, header='freq,inten', delimiter=',',
                newline='\n', fmt='%.10g', comments='')
@@ -337,17 +432,73 @@ def save_output(out_name, out_data):
     return None
 
 
+def sub_bg(inten, bg, pts): # Have problems in input variables here
+    ''' Background subtraction routine.
+
+    Arguments:
+    inten -- intensity waveform, 1D/2D np.array
+    bg    -- ordinal number of the background sweep, int
+    pts   -- number of data points in a single sweep, int
+
+    Returns:
+    inten_db -- background subtracted array, 1D/2D np.array
+    '''
+
+    if len(inten.shape)==1:     # if intensity is 1D array
+        inten_sig = inten[:pts]
+        inten_bg = inten[(bg-1)*pts:]
+    else:                       # if intensity is 2D array
+        inten_sig = inten[:pts, :]
+        inten_bg = inten[(bg-1)*pts:bg*pts, :]
+
+    # Check if background is at an odd-number sweep or an even-number sweep.
+    # If even, the sequency of the intensity needs to be flipped to match
+    # the 1st sweep. Though it is not recommended because the waveforms are
+    # not exactly the same based on experimental results.
+
+    if not (bg % 2):  # even-number background
+        inten_bg = np.flipud(inten_bg)
+    else:
+        pass
+
+    return inten_sig - inten_bg
+
+
+def trunc(freq, inten, delay):
+    ''' Truncate frequency and intensity array if delay is specified.
+
+    Arguments:
+    freq  -- frequency array, 1D/2D np.array
+    inten -- intensity array, 1D/2D np.array
+    delay -- number of data points delayed in inten, inten
+
+    Returns:
+    freq_tr  -- truncated frequency, 1D/2D np.array
+    inten_tr -- truncated intensity, 1D/2D np.array
+    '''
+
+    if len(inten.shape)==1:
+        freq_tr = freq[:-delay]
+        inten_tr = inten[delay:]
+    else:
+        freq_tr = freq[:-delay, :]
+        inten_tr = inten[delay:, :]
+
+    return freq_tr, inten_tr
+
+
+# ---------------- Input Argument Parser ----------------
 def arg():
     ''' Input arguments parser. Returns: argparse Object.'''
 
     parser = argparse.ArgumentParser(description=__doc__,
-                                    epilog='--- Luyao Zou, April 2015 ---')
+                                    epilog='--- Luyao Zou, July 2016 ---')
     parser.add_argument('inten', nargs=1, help='Intensity data file')
     parser.add_argument('-bg', nargs=1, type=int,
                         help='''The ordinal number of the full sweep to use
                                 as background. If not specified,
                                 assume no background subtraction is required,
-                                and all sweep cycles are averaged together. ''')
+                                and all odd sweep are averaged together. ''')
     parser.add_argument('-cf', nargs=1,
                         help='''Single center frequency (MHz) or a file listing
                                 several center frequencies. If neither
@@ -368,6 +519,9 @@ def arg():
     parser.add_argument('-o', nargs=1,
                         help='''Output file name. If not specified,
                                 default name will be used.''')
+    parser.add_argument('-delay', nargs=1, type=int,
+                        help=''' Delay of detector response by number of
+                                 data points. Default is 0.''')
     parser.add_argument('-spline', action='store_true',
                         help='Fit spline to subtract baseline. Optional')
     parser.add_argument('-nobase', action='store_true',
@@ -376,7 +530,12 @@ def arg():
     return parser.parse_args()
 
 
+# ---------------- main routine ----------------
 if __name__ == '__main__':
 
     input_args = arg()
     freq, inten = load_data(input_args)
+    freq, inten = proc_nb(freq, inten, input_args)
+    freq_flat, inten_flat = flat_wave(freq, inten)
+    array_out = proc_wb(freq_flat, inten_flat, input_args)
+    save_output(array_out, input_args)
