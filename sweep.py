@@ -150,6 +150,21 @@ def db_spline(y):
     return y - spline(x)
 
 
+def err_msg_str(f, err_code, msg=FILE_ERR_MSG):
+    ''' Generate file error message string
+
+    Arguments:
+    f        -- file name, str
+    err_code -- error code, int
+    msg      -- error message, dict
+
+    Returns:
+    msg_str -- formated error message, str
+    '''
+
+    return (msg[err_code]).format(f)
+
+
 def flat_wave(freq, inten, nobase=False):
     ''' Flatten frequency and intensity arrays.
 
@@ -206,21 +221,6 @@ def glue_sweep(y):
     y_stiched = y + np.tile(col_shift_accum, (y.shape[0], 1))
 
     return y_stiched
-
-
-def err_msg_str(f, err_code, msg=FILE_ERR_MSG):
-    ''' Generate file error message string
-
-    Arguments:
-    f        -- file name, str
-    err_code -- error code, int
-    msg      -- error message, dict
-
-    Returns:
-    msg_str -- formated error message, str
-    '''
-
-    return (msg[err_code]).format(f)
 
 
 def load_data(args):
@@ -463,7 +463,8 @@ def sub_bg(inten, bg, pts): # Have problems in input variables here
     else:                       # if intensity is 2D array
         inten_sig = inten[0:pts, :]
         inten_bg = inten[(bg-1)*pts:bg*pts, :]
-
+        print(bg)
+        print(inten_bg.shape)
     # Check if background is at an odd-number sweep or an even-number sweep.
     # If even, the sequency of the intensity needs to be flipped to match
     # the 1st sweep. Though it is not recommended because the waveforms are

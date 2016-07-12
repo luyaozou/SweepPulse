@@ -228,7 +228,16 @@ class ArrayShapes(unittest.TestCase):
         self.assertTrue(np.linalg.norm(x_goal - x_flat) < TOL)
         #self.assertTrue(np.linalg.norm(y_goal - y_flat) < TOL)
 
+    def test_sub_bg(self):
 
+        print('\nTest background extraction and subtraction')
+
+        y_sub = sp.sub_bg(self.y_2d, 5, 20)
+        self.assertTrue(y_sub.shape, (20, 10))
+        y_sub = sp.sub_bg(self.y_2d, 3, 20)
+        self.assertTrue(y_sub.shape, (20, 10))
+        y_sub = sp.sub_bg(self.y_2d, 4, 20)
+        self.assertTrue(y_sub.shape, (20, 10))
 
 
 class DbFuncs(unittest.TestCase):
