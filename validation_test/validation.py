@@ -3,6 +3,10 @@ import numpy as np
 import os
 import filecmp
 
+
+# Tolerance
+TOL = 1e-3
+
 # sample result file list
 RESULT_LIST = ['v1result_single_bg5_mode1.csv',
                'v1result_single_bg5_mode1_nobase.csv',
@@ -51,7 +55,7 @@ def validate_file(file1, file2):
         return filecmp.cmp(file1, file2)
 
 
-def validate_data(file1, file2, tor=1e-6):
+def validate_data(file1, file2):
     ''' Validate data in file1 and file2.
     Return status_code: 0 -- identical
                         1 -- values agree within tolerance
@@ -69,7 +73,7 @@ def validate_data(file1, file2, tor=1e-6):
         return 0
     else:
         diff = data1 - data2
-        if np.linalg.norm(diff) < tor:
+        if np.linalg.norm(diff) < TOL:
             return 1
         else:
             return 2
@@ -79,10 +83,10 @@ def print_status(status_code, file1, file2):
     ''' Print out status_code '''
 
     status_msg = {0: 'Identical:',
-                  1: 'Agree within tol 1e-6:',
+                  1: 'Agree within tol {:1.0e}:'.format(TOL),
                   2: 'Disagree:'}
 
-    print('{:<22s} File {:s} and {:s}'.format(status_msg[status_code], file1, file2))
+    print('{:<23s} File {:s} and {:s}'.format(status_msg[status_code], file1, file2))
 
     return None
 
