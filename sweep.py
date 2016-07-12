@@ -355,7 +355,7 @@ def proc_nb(freq, inten, args):
         # Apply linear correction on each sweep
         inten_p = np.apply_along_axis(db_poly, 0, inten_b, 1)
         if args.spline:
-            inten_p = np.apply_along_axis(db_spline, 0, inten_b, 1)
+            inten_p = np.apply_along_axis(db_spline, 0, inten_b)
         return freq_b, inten_p
 
 
