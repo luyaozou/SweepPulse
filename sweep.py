@@ -82,6 +82,15 @@ def box_win(win):
         return win_verified
 
 
+def check_type(var):
+    ''' Check data type of variables. If var is None, exit the program '''
+
+    if isinstance(var, type(None)):
+        exit()
+    else:
+        pass
+
+
 def delay_inten(inten, delay):
     ''' Delay intensity array.
 
@@ -229,12 +238,12 @@ def load_data(args):
     # load intensity file
     inten = load_single_file(args.inten[0])
     # exit if intensity file is not loaded correctly
-    if isinstance(inten, type(None)):
-        exit()
+    check_type(inten)
 
     # load lo file if available
     if args.lo:
         lo = load_single_file(args.lo[0])
+        check_type(lo)
         sweep_num = np.count_nonzero(np.delete(lo*np.roll(lo, 1), 0) < 0)
         sweep_up = lo[0] < 0
     else:

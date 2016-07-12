@@ -193,8 +193,21 @@ class ArrayShapes(unittest.TestCase):
 
     def test_proc_nb(self):
 
-        print('\nTest narrow band process function')
-        pass
+        print('\nTest narrow band process function on 2D array')
+        args_list = ['NONE.dat', '-box', '9']
+        print('\nInput parameters: ' + ' '.join(args_list))
+        test_x, test_y = sp.proc_nb(self.x_2d, self.y_2d, parser_gen(args_list))
+        self.assertEqual(self.x_2d.shape[0] - 8, test_x.shape[0])
+        self.assertEqual(self.x_2d.shape[1], test_x.shape[1])
+        self.assertEqual(self.y_2d.shape[0] - 8, test_y.shape[0])
+        self.assertEqual(self.y_2d.shape[1], test_y.shape[1])
+
+        print('\nTest narrow band process function on 1D array')
+        args_list = ['NONE.dat', '-spline']
+        print('\nInput parameters: ' + ' '.join(args_list))
+        test_x, test_y = sp.proc_nb(self.x_1d, self.y_1d, parser_gen(args_list))
+        self.assertEqual(self.x_1d.shape, test_x.shape)
+        self.assertEqual(self.y_1d.shape, test_y.shape)
 
     def test_flat_wave(self):
 
