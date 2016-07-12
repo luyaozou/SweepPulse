@@ -231,6 +231,12 @@ class ArrayShapes(unittest.TestCase):
     def test_sub_bg(self):
 
         print('\nTest background extraction and subtraction')
+        y_sub = sp.sub_bg(self.y_1d, 5, 20)
+        self.assertTrue(y_sub.shape, (20,))
+        y_sub = sp.sub_bg(self.y_1d, 3, 20)
+        self.assertTrue(y_sub.shape, (20,))
+        y_sub = sp.sub_bg(self.y_1d, 4, 20)
+        self.assertTrue(y_sub.shape, (20,))
 
         y_sub = sp.sub_bg(self.y_2d, 5, 20)
         self.assertTrue(y_sub.shape, (20, 10))

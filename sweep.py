@@ -459,12 +459,11 @@ def sub_bg(inten, bg, pts): # Have problems in input variables here
 
     if len(inten.shape)==1:     # if intensity is 1D array
         inten_sig = inten[0:pts]
-        inten_bg = inten[(bg-1)*pts:]
+        inten_bg = inten[(bg-1)*pts:bg*pts]
     else:                       # if intensity is 2D array
         inten_sig = inten[0:pts, :]
         inten_bg = inten[(bg-1)*pts:bg*pts, :]
-        print(bg)
-        print(inten_bg.shape)
+
     # Check if background is at an odd-number sweep or an even-number sweep.
     # If even, the sequency of the intensity needs to be flipped to match
     # the 1st sweep. Though it is not recommended because the waveforms are
