@@ -141,12 +141,13 @@ def db_spline(y):
     return y - spline(x)
 
 
-def flat_wave(freq, inten):
+def flat_wave(freq, inten, nobase=False):
     ''' Flatten frequency and intensity arrays.
 
     Arguments:
     freq  -- frequency array, 1D/2D np.array
     inten -- intensity array, 1D/2D np.array
+    nobase -- input argument option (do not perform intensity stitch)
 
     Returns:
     freq_flat  -- flattened frequency array, 1D np.array
@@ -162,12 +163,15 @@ def flat_wave(freq, inten):
         freq_flat = freq.flatten('F')[freq_flat_index]
         inten_flat = inten.flatten('F')[freq_flat_index]
 
-        # reconstruct intensity matrix
-        inten_recon = inten_flat.reshape(inten.shape, order='F')
-        # stitch intensity
-        inten = glue_sweep(inten_recon)
-        # flatten intensity again
-        inten_flat = inten.flatten('F')
+        if not nobase:
+            # reconstruct intensity matrix
+            inten_recon = inten_flat.reshape(inten.shape, order='F')
+            # stitch intensity
+            inten = glue_sweep(inten_recon)
+            # flatten intensity again
+            inten_flat = inten.flatten('F')
+        else:
+            pass
 
         return freq_flat, inten_flat
 
@@ -536,6 +540,6 @@ if __name__ == '__main__':
     input_args = arg()
     freq, inten = load_data(input_args)
     freq, inten = proc_nb(freq, inten, input_args)
-    freq_flat, inten_flat = flat_wave(freq, inten)
+    freq_flat, inten_flat = flat_wave(freq, inten, input_args.nobase)
     inten_flat = proc_wb(freq_flat, inten_flat, input_args)
     save_output(np.column_stack((freq_flat, inten_flat)), input_args)
