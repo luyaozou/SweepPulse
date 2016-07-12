@@ -89,14 +89,14 @@ class LoadFile(unittest.TestCase):
         print('\nTest data loader -- full band x, y file')
         args_list = [self.y_fb, '-cf', self.x_fb, '-lo', self.normal_file,
                      '-bdwth', '18']
-        print('\nInput parameters:' + ' '.join(args_list))
+        print('\nInput parameters: ' + ' '.join(args_list))
         x, y = sp.load_data(parser_gen(args_list))
         self.assertTrue(x.shape, (500, 57))
         self.assertTrue(y.shape, (500, 57))
 
         args_list = [self.y_fb, '-cf', self.x_fb, '-lo', self.normal_file,
                      '-bdwth', '18', '-delay', '4', '-bg', '5']
-        print('\nInput parameters:' + ' '.join(args_list))
+        print('\nInput parameters: ' + ' '.join(args_list))
         x, y = sp.load_data(parser_gen(args_list))
         self.assertTrue(x.shape, (496, 57))
         self.assertTrue(y.shape, (496, 57))

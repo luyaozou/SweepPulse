@@ -160,7 +160,7 @@ def flat_wave(freq, inten):
         # and sort frequency
         freq_flat_index = np.argsort(freq.flatten('F'))
         freq_flat = freq.flatten('F')[freq_flat_index]
-        inten_flat = inten_db.flatten('F')[freq_flat_index]
+        inten_flat = inten.flatten('F')[freq_flat_index]
 
         # reconstruct intensity matrix
         inten_recon = inten_flat.reshape(inten.shape, order='F')
@@ -265,9 +265,9 @@ def load_data(args):
         pass
 
     if args.bg: # background subtraction if db option specified
-        sub_bg(inten, args.bg[0], pts)
+        inten = sub_bg(inten, args.bg[0], pts)
     else:       # average intensity if db option not specified
-        avg_inten(inten, pts, sweep_num)
+        inten = avg_inten(inten, pts, sweep_num)
 
     # truncate freq & inten array if delay is specified
     if args.delay:
@@ -276,16 +276,17 @@ def load_data(args):
     return freq, inten
 
 
-def load_single_file(file_name, delm=','):
+def load_single_file(file_name):
     ''' Load single data file & raise exceptions.
 
     Arguments:
     file_name -- input file name, str
-    delm      -- delimiter, str
 
     Returns:
     data -- np.array
     '''
+
+    delm = ','
 
     try:
         data = np.loadtxt(file_name, delimiter=delm)
@@ -332,7 +333,7 @@ def proc_nb(freq, inten, args):
     args  -- input arguments, argparse Object
 
     Returns:
-    freq_p/b  -- processed frequency array, 1D/2D np.array
+    freq_b  -- processed frequency array, 1D/2D np.array
     inten_p/b -- processed intensity array, 1D/2D np.array
     '''
 
@@ -345,7 +346,8 @@ def proc_nb(freq, inten, args):
             freq_b = np.apply_along_axis(box_car, 0, freq, box_win)
             inten_b = np.apply_along_axis(box_car, 0, inten, box_win)
     else:
-        pass
+        freq_b = freq
+        inten_b = inten
 
     if args.nobase:     # if no baseline removal is specified
         return freq_b, inten_b
@@ -354,7 +356,7 @@ def proc_nb(freq, inten, args):
         inten_p = np.apply_along_axis(db_poly, 0, inten_b, 1)
         if args.spline:
             inten_p = np.apply_along_axis(db_spline, 0, inten_b, 1)
-        return freq_p, inten_p
+        return freq_b, inten_p
 
 
 def proc_wb(x, y, args):
@@ -378,9 +380,7 @@ def proc_wb(x, y, args):
         else:
             pass
 
-    data = np.columns_stack((x, y))
-
-    return data
+    return y_db
 
 
 def reconstr_freq(center_freq, pts, sweep_up=True, bdwth=1.):
@@ -425,7 +425,7 @@ def save_output(data, args):
     else:
         out_name = 'SPlot_' + args.inten[0]
 
-    np.savetxt(out_name, out_data, header='freq,inten', delimiter=',',
+    np.savetxt(out_name, data, header='freq,inten', delimiter=',',
                newline='\n', fmt='%.10g', comments='')
     print('-- {:s} Saved --'.format(out_name))
 
@@ -445,10 +445,10 @@ def sub_bg(inten, bg, pts): # Have problems in input variables here
     '''
 
     if len(inten.shape)==1:     # if intensity is 1D array
-        inten_sig = inten[:pts]
+        inten_sig = inten[0:pts]
         inten_bg = inten[(bg-1)*pts:]
     else:                       # if intensity is 2D array
-        inten_sig = inten[:pts, :]
+        inten_sig = inten[0:pts, :]
         inten_bg = inten[(bg-1)*pts:bg*pts, :]
 
     # Check if background is at an odd-number sweep or an even-number sweep.
@@ -537,5 +537,5 @@ if __name__ == '__main__':
     freq, inten = load_data(input_args)
     freq, inten = proc_nb(freq, inten, input_args)
     freq_flat, inten_flat = flat_wave(freq, inten)
-    array_out = proc_wb(freq_flat, inten_flat, input_args)
-    save_output(array_out, input_args)
+    inten_flat = proc_wb(freq_flat, inten_flat, input_args)
+    save_output(np.column_stack((freq_flat, inten_flat)), input_args)
