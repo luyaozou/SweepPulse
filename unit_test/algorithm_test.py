@@ -143,7 +143,7 @@ class DataLoader(unittest.TestCase):
         self.assertTrue(np.linalg.norm(goal - test) < TOL)
 
 
-class ArrayShapes(unittest.TestCase):
+class ArrayManupilation(unittest.TestCase):
     ''' Test array manuplication and reshape routines. '''
 
     x_1d = np.arange(100)
@@ -222,11 +222,14 @@ class ArrayShapes(unittest.TestCase):
         # test 2D data
         x_goal = self.x_2d.flatten('F')
         y_goal = self.y_2d.flatten('F')
-        x_flat, y_flat = sp.flat_wave(self.x_2d, self.y_2d)
+        x_flat, y_flat = sp.flat_wave(self.x_2d, self.y_2d, nobase=True)
         self.assertEqual(x_goal.shape, x_flat.shape)
         self.assertEqual(y_goal.shape, y_flat.shape)
         self.assertTrue(np.linalg.norm(x_goal - x_flat) < TOL)
-        #self.assertTrue(np.linalg.norm(y_goal - y_flat) < TOL)
+        self.assertTrue(np.linalg.norm(y_goal - y_flat) < TOL)
+        y_goal = sp.glue_sweep(self.y_2d).flatten('F')
+        x_flat, y_flat = sp.flat_wave(self.x_2d, self.y_2d, nobase=False)
+        self.assertTrue(np.linalg.norm(y_goal - y_flat) < TOL)
 
     def test_sub_bg(self):
 
@@ -245,15 +248,49 @@ class ArrayShapes(unittest.TestCase):
         y_sub = sp.sub_bg(self.y_2d, 4, 20)
         self.assertTrue(y_sub.shape, (20, 10))
 
-
-class DbFuncs(unittest.TestCase):
-    ''' Test debaseline algorithms '''
-
-    def test_glue_inten(self):
+    def test_glue_sweep(self):
 
         print('\nTest glue intensity algorithm')
+        y_goal = np.arange(20).reshape((10, 2))
+        y_stitched = sp.glue_sweep(y_goal)
+        y_goal[:,1] += 17
+        self.assertEqual(y_goal.shape, y_stitched.shape)
+        self.assertTrue(np.linalg.norm(y_goal - y_stitched) < TOL)
 
-        pass
+
+class Debaseline(unittest.TestCase):
+    ''' Test debaseline algorithms '''
+
+    y_lin = np.arange(10)
+    y_sin = np.sin(y_lin)
+    y_exp = np.exp(y_lin)
+
+    def test_db_poly(self):
+
+        print('\nTest polynomial baseline removal')
+
+        # linear y should be totally removed by deg = 1
+        test_y = sp.db_poly(self.y_lin)
+        self.assertTrue(np.linalg.norm(test_y) < TOL)
+
+        # sin y should return a fit of y=0.01223633+0.14045745x
+        test_y = sp.db_poly(self.y_sin)
+        goal_y = self.y_sin - np.polyval([0.01223633, 0.14045745], self.y_lin)
+        self.assertTrue(np.linalg.norm(test_y - goal_y) < TOL)
+
+        # exp y should return a fit of []
+        test_y = sp.db_poly(self.y_exp, 2)
+        goal_y = self.y_exp - np.polyval([194.71683962, -1143.62429253,
+                                        878.71019214], self.y_lin)
+        self.assertTrue(np.linalg.norm(test_y - goal_y) < TOL)
+
+    def test_db_spline(self):
+
+        print('\nTest spline baseline removal')
+
+        # linear y should be totally removed
+        test_y = sp.db_spline(self.y_lin)
+        self.assertTrue(np.linalg.norm(test_y) < TOL)
 
 
 if __name__ == '__main__':

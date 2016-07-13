@@ -112,7 +112,7 @@ def delay_inten(inten, delay):
     return inten_new
 
 
-def db_poly(y, deg):
+def db_poly(y, deg=1):
     ''' Polynomial baseline clean.
 
     Arguments:
@@ -209,7 +209,7 @@ def glue_sweep(y):
     y -- intensity array, 2D np.array
 
     Returns:
-    y_stiched -- stiched intensity array, 2D np.array
+    y_stitched -- stitched intensity array, 2D np.array
     '''
 
     # Get the difference of the end of col and the start of col+1
@@ -218,9 +218,9 @@ def glue_sweep(y):
     col_shift_accum = np.cumsum(col_shift)
 
     # Apply shift correction to all columns
-    y_stiched = y + np.tile(col_shift_accum, (y.shape[0], 1))
+    y_stitched = y + np.tile(col_shift_accum, (y.shape[0], 1))
 
-    return y_stiched
+    return y_stitched
 
 
 def load_data(args):
