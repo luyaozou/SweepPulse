@@ -101,7 +101,33 @@ class LoadFile(unittest.TestCase):
         self.assertTrue(x.shape, (496, 57))
         self.assertTrue(y.shape, (496, 57))
 
+    def test_analyze_fmt(self):
+        print('\nTest file format analyzer')
 
+        print('\nTest valid single array without header')
+        delm, hd, eof = sp.analyze_fmt(self.x_fb)
+        self.assertTrue(delm == ',')
+        self.assertTrue(hd == 0)
+
+        print('\nTest valid comma delimited text without header')
+        delm, hd, eof = sp.analyze_fmt(self.y_fb)
+        self.assertTrue(delm, ',')
+        self.assertTrue(hd == 0)
+
+        print('\nTest valid tab delimited text with 1 header row')
+        delm, hd, eof = sp.analyze_fmt('unit_test/sample_tab_delm_1_header.txt')
+        self.assertTrue(delm == '\t')
+        self.assertTrue(hd == 1)
+
+        print('\nTest valid white space delimited text with 2 header rows')
+        delm, hd, eof = sp.analyze_fmt('unit_test/sample_space_delm_2_header.txt')
+        self.assertTrue(delm == ' ')
+        self.assertTrue(hd == 2)
+
+        print('\nTest invalid text')
+        delm, hd, eof = sp.analyze_fmt(self.mal_format_file)
+        self.assertTrue(isinstance(delm, type(None)))
+        self.assertTrue(hd == 16)
 
 
 if __name__ == '__main__':
