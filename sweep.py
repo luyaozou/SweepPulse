@@ -366,6 +366,7 @@ def interactive():
         try:
             typed = input('Input number of full sweeps: ').split()
             sweep_num = int(typed[0])
+            break
         except ValueError:
             typed = input('''Must be an integer! Retype: ''').split()
 
