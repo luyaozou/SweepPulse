@@ -204,6 +204,26 @@ def err_msg_str(f, err_code, msg=FILE_ERR_MSG):
     return (msg[err_code]).format(f)
 
 
+def extract_fg(inten, fg, pts):
+    ''' Background subtraction routine.
+
+    Arguments:
+    inten -- intensity waveform, 1D/2D np.array
+    fg    -- ordinal number of the signal sweep, int
+    pts   -- number of data points in a single sweep, int
+
+    Returns:
+    inten_sig -- Extracted array, 1D/2D np.array
+    '''
+
+    if len(inten.shape)==1:     # if intensity is 1D array
+        inten_sig = inten[(fg-1):fg*pts]
+    else:                       # if intensity is 2D array
+        inten_sig = inten[(fg-1)*pts:fg*pts, :]
+
+    return inten_sig
+
+
 def flat_wave(freq, inten, nobase=False):
     ''' Flatten frequency and intensity arrays.
 
@@ -316,10 +336,22 @@ def load_data(args):
     else:
         pass
 
-    if args.bg: # background subtraction if db option specified
-        inten = sub_bg(inten, args.bg[0], pts)
-    else:       # average intensity if db option not specified
+    # get signal sweep number
+    if args.fg:
+        fg = args.fg[0]
+    else:
+        fg = 1
+
+    # get background sweep number
+    if args.bg:
+        bg = args.bg[0]
+        if fg == bg:    # fg==bg, extract fg without background subtraction
+            inten = extract_fg(inten, fg, pts)
+        else:           # fg!=bg, perform background subtraction
+            inten = sub_bg(inten, fg, bg, pts)
+    else:       # average intensity if -bg not specified
         inten = avg_inten(inten, pts, sweep_num)
+
 
     # truncate freq & inten array if delay is specified
     if args.delay:
@@ -487,11 +519,12 @@ def save_output(data, args):
     return None
 
 
-def sub_bg(inten, bg, pts): # Have problems in input variables here
+def sub_bg(inten, fg, bg, pts):
     ''' Background subtraction routine.
 
     Arguments:
     inten -- intensity waveform, 1D/2D np.array
+    fg    -- ordinal number of the signal sweep, int
     bg    -- ordinal number of the background sweep, int
     pts   -- number of data points in a single sweep, int
 
@@ -500,10 +533,10 @@ def sub_bg(inten, bg, pts): # Have problems in input variables here
     '''
 
     if len(inten.shape)==1:     # if intensity is 1D array
-        inten_sig = inten[0:pts]
+        inten_sig = inten[(fg-1):fg*pts]
         inten_bg = inten[(bg-1)*pts:bg*pts]
     else:                       # if intensity is 2D array
-        inten_sig = inten[0:pts, :]
+        inten_sig = inten[(fg-1)*pts:fg*pts, :]
         inten_bg = inten[(bg-1)*pts:bg*pts, :]
 
     # Check if background is at an odd-number sweep or an even-number sweep.
@@ -549,11 +582,14 @@ def arg():
     parser = argparse.ArgumentParser(description=__doc__,
                                     epilog='--- Luyao Zou, July 2016 ---')
     parser.add_argument('inten', nargs=1, help='Intensity data file')
+    parser.add_argument('-fg', nargs=1, type=int,
+                        help='''The ordinal number of the signal sweep.
+                                Default is 1. ''')
     parser.add_argument('-bg', nargs=1, type=int,
-                        help='''The ordinal number of the full sweep to use
-                                as background. If not specified,
-                                assume no background subtraction is required,
-                                and all odd sweep are averaged together. ''')
+                        help='''The ordinal number of the background sweep. If
+                                bg == fg, simply extract the fg sweep without
+                                background subtraction. If not specified, all
+                                odd sweep are averaged together. ''')
     parser.add_argument('-cf', nargs=1,
                         help='''Single center frequency (MHz) or a file listing
                                 several center frequencies. If neither

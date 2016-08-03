@@ -15,11 +15,14 @@ def parser_gen(args_list):
     parser = argparse.ArgumentParser(description=__doc__,
                                     epilog='--- Luyao Zou, July 2016 ---')
     parser.add_argument('inten', nargs=1, help='Intensity data file')
+    parser.add_argument('-fg', nargs=1, type=int,
+                        help='''The ordinal number of the signal sweep.
+                                Default is 1. ''')
     parser.add_argument('-bg', nargs=1, type=int,
-                        help='''The ordinal number of the full sweep to use
-                                as background. If not specified,
-                                assume no background subtraction is required,
-                                and all odd sweep are averaged together. ''')
+                        help='''The ordinal number of the background sweep. If
+                                bg == fg, simply extract the fg sweep without
+                                background subtraction. If not specified, all
+                                odd sweep are averaged together. ''')
     parser.add_argument('-cf', nargs=1,
                         help='''Single center frequency (MHz) or a file listing
                                 several center frequencies. If neither
