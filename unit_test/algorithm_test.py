@@ -237,19 +237,76 @@ class ArrayManupilation(unittest.TestCase):
     def test_sub_bg(self):
 
         print('\nTest background extraction and subtraction')
-        y_sub = sp.sub_bg(self.y_1d, 1, 5, 20)
-        self.assertTrue(y_sub.shape, (20,))
-        y_sub = sp.sub_bg(self.y_1d, 1, 3, 20)
-        self.assertTrue(y_sub.shape, (20,))
-        y_sub = sp.sub_bg(self.y_1d, 1, 4, 20)
-        self.assertTrue(y_sub.shape, (20,))
+        x_sub = sp.sub_bg(self.x_1d, 5, 1, 20)
+        self.assertEqual(x_sub.shape, (20,))
+        # x_sub should be [80, 80, ..., 80]
+        self.assertTrue(np.linalg.norm(np.ones(20)*80 - x_sub) < TOL)
+        x_sub = sp.sub_bg(self.x_1d, 1, 3, 20)
+        self.assertEqual(x_sub.shape, (20,))
+        # x_sub should be -[40, 40, ..., 40]
+        self.assertTrue(np.linalg.norm(np.ones(20)*40 + x_sub) < TOL)
+        x_sub = sp.sub_bg(self.x_1d, 1, 4, 20)
+        self.assertEqual(x_sub.shape, (20,))
+        # x_sub should be -[79, 77, ..., 38]
+        self.assertTrue(np.linalg.norm(np.arange(20)*2 - 79 - x_sub) < TOL)
 
-        y_sub = sp.sub_bg(self.y_2d, 1, 5, 20)
-        self.assertTrue(y_sub.shape, (20, 10))
-        y_sub = sp.sub_bg(self.y_2d, 1, 3, 20)
-        self.assertTrue(y_sub.shape, (20, 10))
-        y_sub = sp.sub_bg(self.y_2d, 1, 4, 20)
-        self.assertTrue(y_sub.shape, (20, 10))
+        x_sub = sp.sub_bg(self.x_2d, 5, 1, 20)
+        self.assertEqual(x_sub.shape, (20, 10))
+        # x_sub should be all 80
+        self.assertTrue(np.linalg.norm(np.ones((20, 10))*80 - x_sub) < TOL)
+        x_sub = sp.sub_bg(self.x_2d, 1, 3, 20)
+        self.assertEqual(x_sub.shape, (20, 10))
+        # x_sub should be all -40
+        self.assertTrue(np.linalg.norm(np.ones((20, 10))*40 + x_sub) < TOL)
+        x_sub = sp.sub_bg(self.x_2d, 1, 4, 20)
+        self.assertEqual(x_sub.shape, (20, 10))
+        # x_sub should be [[-79, -77, ..., -38]]*10 cols
+        self.assertTrue(np.linalg.norm(np.tile(np.arange(20)*2 - 79, (10, 1)).transpose() - x_sub) < TOL)
+
+
+    def test_avg_inten(self):
+
+        print('\nTest average intensity array')
+        # test 1D arrays
+        x_avg = sp.avg_inten(self.x_1d, 20, 2)
+        self.assertEqual(x_avg.shape, (20,))
+        # x_avg should take col 2 & 4, thus [40, 41, ..., 59]
+        self.assertTrue(np.linalg.norm(np.arange(20) + 40 - x_avg) < TOL)
+        x_avg = sp.avg_inten(self.x_1d, 20, 3)
+        self.assertEqual(x_avg.shape, (20,))
+        # x_avg should tale col 1, 3 & 5, thus also [40, 41, ..., 60]
+        self.assertTrue(np.linalg.norm(np.arange(20) + 40 - x_avg) < TOL)
+
+        # test 2D arrays
+        x_avg = sp.avg_inten(self.x_2d, 20, 2)
+        self.assertEqual(x_avg.shape, (20, 10))
+        # x_avg should take row 2 & 4
+        # thus [40, 41, ..., 59]^T X [0, 100, ..., 900]
+        base = np.tile(np.arange(10)*100, (20, 1))
+        add = np.tile(np.arange(20) + 40, (10, 1)).transpose()
+        self.assertTrue(np.linalg.norm(base + add - x_avg) < TOL)
+        x_avg = sp.avg_inten(self.x_2d, 20, 3)
+        self.assertEqual(x_avg.shape, (20, 10))
+        self.assertTrue(np.linalg.norm(base + add - x_avg) < TOL)
+
+
+    def test_extract_fg(self):
+
+        print('\nTest extraction of signal sweep')
+        # test 1D arrays
+        y_ext = sp.extract_fg(self.y_1d, 1, 50)
+        self.assertEqual(y_ext.shape, (50,))
+        # y_ext = np.sin([0,...,49])
+        self.assertTrue(np.linalg.norm(y_ext - np.sin(np.arange(50))) < TOL)
+
+        # test 2D arrays
+        y_ext = sp.extract_fg(self.y_2d, 2, 10)
+        self.assertEqual(y_ext.shape, (10, 10))
+        # y_ext = np.radians([10, 11, ..., 19]^T X [0, 100, ..., 900])
+        xbase = np.tile(np.arange(10)*100, (10, 1))
+        xadd = np.tile(np.arange(10) + 10, (10, 1)).transpose()
+        self.assertTrue(np.linalg.norm(y_ext - np.radians(xbase + xadd)) < TOL)
+        
 
     def test_glue_sweep(self):
 

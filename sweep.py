@@ -58,30 +58,38 @@ def analyze_fmt(file_name):
     return delm, hd, eof
 
 
-def avg_inten(inten, pts, sweep_num):
+def avg_inten(inten, pts, fg):
     ''' Average all odd intensity sweeps togethere.
 
     Arguments:
     inten -- intensity waveform, 1D/2D np.array
     pts   -- number of data points in a single sweep, int
-    sweep_num -- number of sweeps, int
+    fg    -- signal ordinal number, int
 
     Returns:
     inten_avg -- averaged intenisity array, 1D/2D np.array
     '''
 
+    # determine fg parity and total number of sweeps
+    parity = fg % 2
+    sweep_num = inten.shape[0] // pts
 
-    # Separate odd and even numbers of cycles and sum up
+    # generate ordinal numbers than match the fg parity
+    ordinal = np.arange(sweep_num)
+    match_parity = ordinal[ordinal % 2 == parity]
+
+    # Extract cycles and sum up
     if len(inten.shape)==1:
-        inten_odd = np.zeros(pts)
-        for i in range(sweep_num//2):
-            inten_odd += inten[i*2*pts:(i*2+1)*pts]
+        inten_ext = np.zeros(pts)
+        for i in match_parity:
+            inten_ext += inten[i*pts:(i+1)*pts]
     else:
-        inten_odd = np.zeros((pts, inten.shape[1]))
-        for i in range(sweep_num//2):
-            inten_odd += inten[i*2*pts:(i*2+1)*pts, :]
+        inten_ext = np.zeros((pts, inten.shape[1]))
+        for i in match_parity:
+            inten_ext += inten[i*pts:(i+1)*pts, :]
 
-    return inten_odd / (sweep_num//2)
+    # return the average
+    return inten_ext / len(match_parity)
 
 
 def box_car(x, win):
@@ -350,7 +358,7 @@ def load_data(args):
         else:           # fg!=bg, perform background subtraction
             inten = sub_bg(inten, fg, bg, pts)
     else:       # average intensity if -bg not specified
-        inten = avg_inten(inten, pts, sweep_num)
+        inten = avg_inten(inten, pts, fg)
 
 
     # truncate freq & inten array if delay is specified
@@ -533,7 +541,7 @@ def sub_bg(inten, fg, bg, pts):
     '''
 
     if len(inten.shape)==1:     # if intensity is 1D array
-        inten_sig = inten[(fg-1):fg*pts]
+        inten_sig = inten[(fg-1)*pts:fg*pts]
         inten_bg = inten[(bg-1)*pts:bg*pts]
     else:                       # if intensity is 2D array
         inten_sig = inten[(fg-1)*pts:fg*pts, :]
@@ -544,7 +552,7 @@ def sub_bg(inten, fg, bg, pts):
     # the 1st sweep. Though it is not recommended because the waveforms are
     # not exactly the same based on experimental results.
 
-    if not (bg % 2):  # even-number background
+    if ((fg % 2) != (bg % 2)):  # fg-bg numbers have opposite parities
         inten_bg = np.flipud(inten_bg)
     else:
         pass
@@ -589,7 +597,8 @@ def arg():
                         help='''The ordinal number of the background sweep. If
                                 bg == fg, simply extract the fg sweep without
                                 background subtraction. If not specified, all
-                                odd sweep are averaged together. ''')
+                                sweeps with the same parity of fg are averaged
+                                together. ''')
     parser.add_argument('-cf', nargs=1,
                         help='''Single center frequency (MHz) or a file listing
                                 several center frequencies. If neither
