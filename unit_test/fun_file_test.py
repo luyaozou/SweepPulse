@@ -63,74 +63,87 @@ class ErrMsgPrint(unittest.TestCase):
         self.assertEqual(sp.err_msg_str('f', 0), '')
         self.assertEqual(sp.err_msg_str('f', 1), 'f does not exist')
         self.assertEqual(sp.err_msg_str('f', 2), 'f format is not supported')
+        self.assertEqual(sp.err_msg_str('f', 3), 'f contains an object array that is not allowed to load')
 
 
 class LoadFile(unittest.TestCase):
     ''' Test file load system '''
 
-    normal_file = 'validation_test/sample_input_LO.dat'
+    normal_txt_file = 'validation_test/sample_input_LO.dat'
+    normal_npy_file = 'validation_test/sample_input_inten.npy'
     mal_format_file = 'validation_test/run_val_WIN.bat'
     non_exist_file = 'Nowhere.csv'
     y_single = 'validation_test/sample_input_single_int.dat'
     x_fb = 'validation_test/sample_input_fullband_freq.dat'
     y_fb = 'validation_test/sample_input_fullband_int.dat'
 
-    def test_single_file_loader(self):
+    def test_single_file_txt_fmt(self):
         print('\nTest single file loader')
-        self.assertTrue(isinstance(sp.load_single_file(self.normal_file), np.ndarray))
-        self.assertTrue(isinstance(sp.load_single_file(self.mal_format_file), type(None)))
-        self.assertTrue(isinstance(sp.load_single_file(self.non_exist_file), type(None)))
+        loaded = sp.load_single_file(self.normal_txt_file)
+        self.assertTrue(isinstance(loaded, np.ndarray))
+        self.assertEqual(loaded.shape, (5000,))
+
+        loaded = sp.load_single_file(self.mal_format_file)
+        self.assertTrue(isinstance(loaded, type(None)))
+        loaded = sp.load_single_file(self.non_exist_file)
+        self.assertTrue(isinstance(loaded, type(None)))
 
     def test_loader_single_y(self):
         print('\nTest data loader -- single y file')
-        args_list = [self.y_single, '-lo', self.normal_file]
+        args_list = [self.y_single, '-lo', self.normal_txt_file]
         x, y = sp.load_data(parser_gen(args_list))
-        self.assertTrue(x.shape, (500,))
-        self.assertTrue(y.shape, (500,))
+        self.assertEqual(x.shape, (1000,))
+        self.assertEqual(y.shape, (1000,))
+
+    def test_loader_single_npy(self):
+        print('\nTest data loader -- single npy binary file')
+        loaded = sp.load_single_file(self.normal_npy_file)
+        self.assertTrue(isinstance(loaded, np.ndarray))
+        self.assertEqual(loaded.shape, (2500, 55))
 
     def test_loader_fb_xy(self):
         print('\nTest data loader -- full band x, y file')
-        args_list = [self.y_fb, '-cf', self.x_fb, '-lo', self.normal_file,
+        args_list = [self.y_fb, '-cf', self.x_fb, '-lo', self.normal_txt_file,
                      '-bdwth', '18']
         print('\nInput parameters: ' + ' '.join(args_list))
         x, y = sp.load_data(parser_gen(args_list))
-        self.assertTrue(x.shape, (500, 57))
-        self.assertTrue(y.shape, (500, 57))
+        self.assertEqual(x.shape, (1000, 57))
+        self.assertEqual(y.shape, (1000, 57))
 
-        args_list = [self.y_fb, '-cf', self.x_fb, '-lo', self.normal_file,
+        args_list = [self.y_fb, '-cf', self.x_fb, '-lo', self.normal_txt_file,
                      '-bdwth', '18', '-delay', '4', '-bg', '5']
         print('\nInput parameters: ' + ' '.join(args_list))
         x, y = sp.load_data(parser_gen(args_list))
-        self.assertTrue(x.shape, (496, 57))
-        self.assertTrue(y.shape, (496, 57))
+        self.assertEqual(x.shape, (996, 57))
+        self.assertEqual(y.shape, (996, 57))
 
-    def test_analyze_fmt(self):
+    def test_analyze_txt_fmt(self):
         print('\nTest file format analyzer')
 
         print('\nTest valid single array without header')
-        delm, hd, eof = sp.analyze_fmt(self.x_fb)
-        self.assertTrue(delm == ',')
-        self.assertTrue(hd == 0)
+        delm, hd, eof = sp.analyze_txt_fmt(self.x_fb)
+        self.assertEqual(delm, ',')
+        self.assertEqual(hd, 0)
 
         print('\nTest valid comma delimited text without header')
-        delm, hd, eof = sp.analyze_fmt(self.y_fb)
-        self.assertTrue(delm, ',')
-        self.assertTrue(hd == 0)
+        delm, hd, eof = sp.analyze_txt_fmt(self.y_fb)
+        self.assertEqual(delm, ',')
+        self.assertEqual(hd, 0)
 
         print('\nTest valid tab delimited text with 1 header row')
-        delm, hd, eof = sp.analyze_fmt('unit_test/sample_tab_delm_1_header.txt')
-        self.assertTrue(delm == '\t')
-        self.assertTrue(hd == 1)
+        delm, hd, eof = sp.analyze_txt_fmt('unit_test/sample_tab_delm_1_header.txt')
+        self.assertEqual(delm, '\t')
+        self.assertEqual(hd, 1)
 
         print('\nTest valid white space delimited text with 2 header rows')
-        delm, hd, eof = sp.analyze_fmt('unit_test/sample_space_delm_2_header.txt')
-        self.assertTrue(delm == ' ')
-        self.assertTrue(hd == 2)
+        delm, hd, eof = sp.analyze_txt_fmt('unit_test/sample_space_delm_2_header.txt')
+        self.assertEqual(delm, ' ')
+        self.assertEqual(hd, 2)
 
         print('\nTest invalid text')
-        delm, hd, eof = sp.analyze_fmt(self.mal_format_file)
+        delm, hd, eof = sp.analyze_txt_fmt(self.mal_format_file)
         self.assertTrue(isinstance(delm, type(None)))
-        self.assertTrue(hd == 16)
+        self.assertEqual(hd, 16)
 
 
 if __name__ == '__main__':

@@ -15,6 +15,11 @@ RESULT_LIST = ['v1result_single_bg5_mode1.csv',
                'v1result_fullband_bg5_mode1.csv',
                'v1result_fullband_bg5_mode1_nobase.csv',
                'v1result_fullband_bg5_mode1_spline.csv'
+               # v2 expected results
+               'v2result_single_fg1-bg5.csv'
+               'v2result_single_fg4-bg2.csv'
+               'v2result_fullband_fg1-bg5.csv'
+               'v2result_fullband_fg4-bg2.csv'
                ]
 
 # validation result file list
@@ -25,6 +30,9 @@ VAL_LIST = ['val_single_bg5_mode1.csv',
             'val_fb_bg5_mode1.csv',
             'val_fb_bg5_mode1_nobase.csv',
             'val_fb_bg5_mode1_spline.csv',
+            # v2 validation
+            'val_v2_single_fg4-bg2.csv'
+            'val_v2_fb_fg1-bg5.csv'
             ]
 
 

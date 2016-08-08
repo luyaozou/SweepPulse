@@ -14,13 +14,15 @@ from scipy.optimize import leastsq
 FILE_ERR_MSG = {0: '',                              # Silent
                 1: '{:s} does not exist',           # FileNotFoundError
                 2: '{:s} format is not supported',  # Format Issue
+                3: '{:s} contains an object array that is not allowed to load'
+                # npy allow_pickle=False exception
                 }
 
 # -------------------------------------------------------
 # ------ Function Declaration (Alphabetical Order) ------
 # -------------------------------------------------------
 
-def analyze_fmt(file_name):
+def analyze_txt_fmt(file_name):
     ''' Analyze the data text format: delimiter and header
 
     Arguments:
@@ -378,19 +380,31 @@ def load_single_file(file_name):
     data -- np.array
     '''
 
-    try:
-        delm, hd, eof = analyze_fmt(file_name)
-        if eof or isinstance(delm, type(None)):
-            print(err_msg_str(file_name, 2))
-        else:
-            data = np.loadtxt(file_name, delimiter=delm, skiprows=hd)
+    # test if the file is .npy binary
+    if re.search('\.npy$', file_name):
+        try:
+            data = np.load(file_name, mmap_mode='r', allow_pickle=False)
             return data
-    except FileNotFoundError:
-        print(err_msg_str(file_name, 1))
-        return None
-    except ValueError:
-        print(err_msg_str(file_name, 2))
-        return None
+        except IOError:
+            print(err_msg_str(file_name, 2))
+            return None
+        except ValueError:
+            print(err_msg_str(file_name, 3))
+            return None
+    else:
+        try:
+            delm, hd, eof = analyze_txt_fmt(file_name)
+            if eof or isinstance(delm, type(None)):
+                print(err_msg_str(file_name, 2))
+            else:
+                data = np.loadtxt(file_name, delimiter=delm, skiprows=hd)
+                return data
+        except FileNotFoundError:
+            print(err_msg_str(file_name, 1))
+            return None
+        except ValueError:
+            print(err_msg_str(file_name, 2))
+            return None
 
 
 def interactive():
@@ -588,7 +602,7 @@ def arg():
     ''' Input arguments parser. Returns: argparse Object.'''
 
     parser = argparse.ArgumentParser(description=__doc__,
-                                    epilog='--- Luyao Zou, July 2016 ---')
+             epilog='--- Luyao Zou @ https://github.com/luyaozou/ ---')
     parser.add_argument('inten', nargs=1, help='Intensity data file')
     parser.add_argument('-fg', nargs=1, type=int,
                         help='''The ordinal number of the signal sweep.
