@@ -171,7 +171,7 @@ def db_poly(y, deg=1):
     y_db -- debaselined array, 1D np.array
     '''
 
-    x = np.arange(len(y))
+    x = np.arange(len(y)) / (len(y)-1)
     popt = np.polyfit(x, y, deg)
 
     return y - np.polyval(popt, x)
@@ -190,11 +190,11 @@ def db_spline(y):
     # Because of the discharge disturbance, the background does not exactly
     # match the signal. This creates a curved baseline after background
     # subtraction. Try to fit a B-spline to the baseline.
-    x = np.arange(len(y))
+    x = np.arange(len(y)) / (len(y)-1)
     # Construct weight
     weight = np.exp(-np.power(y - y.max(), 2))
     # Interpolate spline
-    spline = interpolate.UnivariateSpline(x, y, w=weight, k=5)
+    spline = interpolate.UnivariateSpline(x, y, w=weight, k=2)
 
     return y - spline(x)
 
@@ -506,9 +506,9 @@ def reconstr_freq(center_freq, pts, sweep_up=True, bdwth=1.):
     '''
 
     if sweep_up:
-        single_band = bdwth * (np.arange(pts)/pts - 0.5)
+        single_band = bdwth * (np.arange(pts)/(pts-1) - 0.5)
     else:
-        single_band = bdwth * (0.5 - np.arange(pts)/pts)
+        single_band = bdwth * (0.5 - np.arange(pts)/(pts-1))
 
     if isinstance(center_freq, np.ndarray):
         freq = np.tile(single_band, (len(center_freq), 1)).transpose() + \

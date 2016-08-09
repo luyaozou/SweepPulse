@@ -8,31 +8,27 @@ import filecmp
 TOL = 1e-3
 
 # sample result file list
-RESULT_LIST = ['v1result_single_bg5_mode1.csv',
-               'v1result_single_bg5_mode1_nobase.csv',
-               'v1result_single_bg5_mode1_spline.csv',
+RESULT_LIST = ['v2result_single_fg1-bg5_mode1.csv',
+               'v2result_single_fg1-bg5_mode1_nobase.csv',
+               'v2result_single_fg1-bg5_mode1_spline.csv',
                #'v1result_single_bg5_mode2.csv',
-               'v1result_fullband_bg5_mode1.csv',
-               'v1result_fullband_bg5_mode1_nobase.csv',
-               'v1result_fullband_bg5_mode1_spline.csv'
+               'v2result_fullband_fg1-bg5_mode1.csv',
+               'v2result_fullband_fg1-bg5_mode1_nobase.csv',
+               'v2result_fullband_fg1-bg5_mode1_spline.csv',
                # v2 expected results
-               'v2result_single_fg1-bg5.csv'
-               'v2result_single_fg4-bg2.csv'
-               'v2result_fullband_fg1-bg5.csv'
-               'v2result_fullband_fg4-bg2.csv'
+               'v2result_single_fg4-bg2_nobase.csv'
                ]
 
 # validation result file list
-VAL_LIST = ['val_single_bg5_mode1.csv',
-            'val_single_bg5_mode1_nobase.csv',
-            'val_single_bg5_mode1_spline.csv',
+VAL_LIST = ['val_single_fg1-bg5_mode1.csv',
+            'val_single_fg1-bg5_mode1_nobase.csv',
+            'val_single_fg1-bg5_mode1_spline.csv',
             #'val_single_bg5_mode2.csv',
-            'val_fb_bg5_mode1.csv',
-            'val_fb_bg5_mode1_nobase.csv',
-            'val_fb_bg5_mode1_spline.csv',
+            'val_fb_fg1-bg5_mode1.csv',
+            'val_fb_fg1-bg5_mode1_nobase.csv',
+            'val_fb_fg1-bg5_mode1_spline.csv',
             # v2 validation
-            'val_v2_single_fg4-bg2.csv'
-            'val_v2_fb_fg1-bg5.csv'
+            'val_single_fg4-bg2_nobase.csv'
             ]
 
 
@@ -105,10 +101,10 @@ if __name__ == '__main__':
     overall_status_code = 0
     overall_status_msg = {0: 'Validation Passed !',
                           1: 'Validation Acceptable ... Data agree within tolerance.',
-                          2: 'Validation Failed ... Disagreements found in test data'
+                          2: 'Validation Failed ...   Disagreements found in test data'
                           }
 
-    print('*'*20)
+    print('*'*24)
     print('Validating ...')
 
     pairs = res_val_pair(RESULT_LIST, VAL_LIST)
