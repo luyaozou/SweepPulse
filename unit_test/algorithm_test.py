@@ -114,7 +114,7 @@ class DataLoader(unittest.TestCase):
     bdwth = 12.
     cf_array = np.arange(20)*bdwth + 100000.
     pts = 500
-    band = np.arange(pts)/pts - 0.5
+    band = np.arange(pts)/(pts-1) - 0.5
 
     def test_freq_reconstructor(self):
 
@@ -139,11 +139,12 @@ class DataLoader(unittest.TestCase):
         self.assertTrue(np.linalg.norm(goal - test) < TOL)
 
         # case 4, cf=array, known bandwidth, sweep down
-        goal = -np.arange(20*self.pts)/(20*self.pts)*240 + 100234.
-        goal = np.fliplr(goal.reshape((self.pts, 20), order='F'))
+        goal = np.tile((-np.arange(self.pts)/(self.pts-1)+0.5) * self.bdwth, (20, 1)).transpose()
+        add = np.tile(self.cf_array, (self.pts, 1))
         test = sp.reconstr_freq(self.cf_array, self.pts, bdwth=self.bdwth, sweep_up=False)
         self.assertEqual(goal.shape, test.shape)
-        self.assertTrue(np.linalg.norm(goal - test) < TOL)
+        self.assertEqual(goal.shape, add.shape)
+        self.assertTrue(np.linalg.norm(goal + add - test) < TOL)
 
 
 class ArrayManupilation(unittest.TestCase):
@@ -304,9 +305,9 @@ class ArrayManupilation(unittest.TestCase):
         self.assertEqual(y_ext.shape, (10, 10))
         # y_ext = np.radians([10, 11, ..., 19]^T X [0, 100, ..., 900])
         xbase = np.tile(np.arange(10)*100, (10, 1))
-        xadd = np.tile(np.arange(10) + 10, (10, 1)).transpose()
+        xadd = np.tile(-np.arange(10) + 19, (10, 1)).transpose()
         self.assertTrue(np.linalg.norm(y_ext - np.radians(xbase + xadd)) < TOL)
-        
+
 
     def test_glue_sweep(self):
 

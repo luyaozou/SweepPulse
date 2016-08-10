@@ -105,13 +105,13 @@ class LoadFile(unittest.TestCase):
     def test_loader_fb_xy(self):
         print('\nTest data loader -- full band x, y file')
         args_list = [self.y_fb, '-cf', self.x_fb, '-lo', self.lo_fb]
-        print('\nInput parameters: ' + ' '.join(args_list))
+        #print('\nInput parameters: ' + ' '.join(args_list))
         x, y = sp.load_data(parser_gen(args_list))
         self.assertEqual(x.shape, (1000, 29))
         self.assertEqual(y.shape, (1000, 29))
 
         args_list = [self.y_fb, '-cf', self.x_fb, '-lo', self.lo_fb, '-delay', '4', '-bg', '5']
-        print('\nInput parameters: ' + ' '.join(args_list))
+        #print('\nInput parameters: ' + ' '.join(args_list))
         x, y = sp.load_data(parser_gen(args_list))
         self.assertEqual(x.shape, (996, 29))
         self.assertEqual(y.shape, (996, 29))
