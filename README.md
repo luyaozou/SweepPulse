@@ -1,4 +1,23 @@
 # SweepPulse
+
+---------- v2 release ----------
+
+New version of SweepPulse is released!
+
+Things updated:
+- Improve frequency restoration.
+- Improve spline baseline removal algorithm.
+- Improve data loading algorithm.
+  Support multiple delimited text as well as Python Numpy binary format .npy.
+- Modify input options.
+  Delete useless "mode" option in v1.
+  Support both foreground and background sweep selection.
+- Delete v1 sample files, add v2 sample files.
+- Significantly improve code readability by refactoring.
+
+
+---------- v1 release ----------
+
 Data process script for the "fast sweep" technique described in J. Phys. Chem. A, 2016, 120, 657
 The experimental technique is described in detail in the publication.
 The script takes the experimentally measured frequency and intensity txt files
