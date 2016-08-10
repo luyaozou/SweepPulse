@@ -69,13 +69,13 @@ class ErrMsgPrint(unittest.TestCase):
 class LoadFile(unittest.TestCase):
     ''' Test file load system '''
 
-    normal_txt_file = 'validation_test/sample_input_LO.dat'
-    normal_npy_file = 'validation_test/sample_input_inten.npy'
+    normal_txt_file = 'validation_test/sample_input_single_inten.dat'
+    normal_npy_file = 'validation_test/sample_input_fb_wavybase-noline_lo.npy'
     mal_format_file = 'validation_test/run_val_WIN.bat'
     non_exist_file = 'Nowhere.csv'
-    y_single = 'validation_test/sample_input_single_int.dat'
-    x_fb = 'validation_test/sample_input_fullband_freq.dat'
-    y_fb = 'validation_test/sample_input_fullband_int.dat'
+    y_single = 'validation_test/sample_input_single_inten.dat'
+    x_fb = 'validation_test/sample_input_fb_numerous-lines_freq.dat'
+    y_fb = 'validation_test/sample_input_fb_numerous-lines_inten.npy'
 
     def test_single_file_txt_fmt(self):
         print('\nTest single file loader')

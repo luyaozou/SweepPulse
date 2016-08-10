@@ -8,27 +8,38 @@ import filecmp
 TOL = 1e-3
 
 # sample result file list
-RESULT_LIST = ['v2result_single_fg1-bg5_mode1.csv',
-               'v2result_single_fg1-bg5_mode1_nobase.csv',
-               'v2result_single_fg1-bg5_mode1_spline.csv',
-               #'v1result_single_bg5_mode2.csv',
-               'v2result_fullband_fg1-bg5_mode1.csv',
-               'v2result_fullband_fg1-bg5_mode1_nobase.csv',
-               'v2result_fullband_fg1-bg5_mode1_spline.csv',
-               # v2 expected results
-               'v2result_single_fg4-bg2_nobase.csv'
+RESULT_LIST = ['v2result_single_fg1-bg5_box5.csv',
+               'v2result_single_fg2-bg5.csv',
+               'v2result_single_fg5-bg1_box5.csv',
+               'v2result_single_avg.csv',
+               'v2result_single_fg1-bg5_nobase.csv',
+               'v2result_single_fg1-bg5_spline.csv',
+               'v2result_fb_couple-of-lines_box5.csv',
+               'v2result_fb_couple-of-lines_nobase.csv',
+               'v2result_fb_couple-of-lines_spline.csv',               'v2result_fb_numerous-lines_box5.csv',
+               'v2result_fb_numerous-lines_nobase.csv',
+               'v2result_fb_numerous-lines_spline.csv',
+               'v2result_fb_wavybase-noline_box5.csv',
+               'v2result_fb_wavybase-noline_nobase.csv',
+               'v2result_fb_wavybase-noline_spline.csv',
                ]
 
 # validation result file list
-VAL_LIST = ['val_single_fg1-bg5_mode1.csv',
-            'val_single_fg1-bg5_mode1_nobase.csv',
-            'val_single_fg1-bg5_mode1_spline.csv',
-            #'val_single_bg5_mode2.csv',
-            'val_fb_fg1-bg5_mode1.csv',
-            'val_fb_fg1-bg5_mode1_nobase.csv',
-            'val_fb_fg1-bg5_mode1_spline.csv',
-            # v2 validation
-            'val_single_fg4-bg2_nobase.csv'
+VAL_LIST = ['val_single_fg1-bg5_box5.csv',
+            'val_single_fg2-bg5.csv',
+            'val_single_fg5-bg1_box5.csv',
+            'val_single_avg.csv',
+            'val_single_fg1-bg5_nobase.csv',
+            'val_single_fg1-bg5_spline.csv',
+            'val_fb_couple-of-lines_box5.csv',
+            'val_fb_couple-of-lines_nobase.csv',
+            'val_fb_couple-of-lines_spline.csv',
+            'val_fb_numerous-lines_box5.csv',
+            'val_fb_numerous-lines_nobase.csv',
+            'val_fb_numerous-lines_spline.csv',
+            'val_fb_wavybase-noline_box5.csv',
+            'val_fb_wavybase-noline_nobase.csv',
+            'val_fb_wavybase-noline_spline.csv',
             ]
 
 

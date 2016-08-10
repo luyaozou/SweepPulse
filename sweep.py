@@ -61,7 +61,7 @@ def analyze_txt_fmt(file_name):
 
 
 def avg_inten(inten, pts, fg):
-    ''' Average all odd intensity sweeps togethere.
+    ''' Average all intensity sweeps with the same parity to fg togethere.
 
     Arguments:
     inten -- intensity waveform, 1D/2D np.array
@@ -192,11 +192,17 @@ def db_spline(y):
     # subtraction. Try to fit a B-spline to the baseline.
     x = np.arange(len(y)) / (len(y)-1)
     # Construct weight
-    weight = np.exp(-np.power(y - y.max(), 2))
+    weight = weight_spline(y)
+    w_nonzero = np.not_equal(weight, 0)
     # Interpolate spline
-    spline = interpolate.UnivariateSpline(x, y, w=weight, k=2)
+    spline = interpolate.UnivariateSpline(x, y, w=weight, k=5)
+    # Remove spline
+    y_db = y - spline(x)
+    # Remove linear feature
+    ppoly = np.polyfit(x[w_nonzero], y_db[w_nonzero], 1)
+    y_db = y_db - np.polyval(ppoly, x)
 
-    return y - spline(x)
+    return y_db
 
 
 def err_msg_str(f, err_code, msg=FILE_ERR_MSG):
@@ -223,7 +229,7 @@ def extract_fg(inten, fg, pts):
     pts   -- number of data points in a single sweep, int
 
     Returns:
-    inten_sig -- Extracted array, 1D/2D np.array
+    inten_sig -- Extracted array, 1D/2D np.array (flipped if even fg)
     '''
 
     if len(inten.shape)==1:     # if intensity is 1D array
@@ -231,7 +237,7 @@ def extract_fg(inten, fg, pts):
     else:                       # if intensity is 2D array
         inten_sig = inten[(fg-1)*pts:fg*pts, :]
 
-    return inten_sig
+    return flip(inten_sig, fg)
 
 
 def flat_wave(freq, inten, nobase=False):
@@ -248,25 +254,49 @@ def flat_wave(freq, inten, nobase=False):
     '''
 
     if len(inten.shape)==1:
-        return freq, inten
+        # sort frequency
+        sort_index = np.argsort(freq)
+        return freq[sort_index], inten[sort_index]
     else:
         # Flatten frequency and intensity matrices into vector waveforms
-        # and sort frequency
-        freq_flat_index = np.argsort(freq.flatten('F'))
-        freq_flat = freq.flatten('F')[freq_flat_index]
-        inten_flat = inten.flatten('F')[freq_flat_index]
+        #freq_flat_index = np.argsort(freq.flatten('F'))
+        #freq_flat = freq.flatten('F')[freq_flat_index]
+        #inten_flat = inten.flatten('F')[freq_flat_index]
 
-        if not nobase:
-            # reconstruct intensity matrix
-            inten_recon = inten_flat.reshape(inten.shape, order='F')
-            # stitch intensity
-            inten = glue_sweep(inten_recon)
-            # flatten intensity again
+        # check frequency array: decreasing freq or increasing freq
+        up_bool = freq[0, 0] < freq[-1, 0]
+
+        if up_bool:
+            pass
+        else:   # flip freq and inten array upside down
+            freq = np.flipud(freq)
+            inten = np.flipud(inten)
+
+        freq_flat = freq.flatten('F')
+        if nobase:      # no stitch intensity
             inten_flat = inten.flatten('F')
         else:
-            pass
+            inten = glue_sweep(inten)
+            inten_flat = inten.flatten('F')
 
         return freq_flat, inten_flat
+
+
+def flip(signal, ordinal):
+    ''' Flip signal array upside down if is even ordinal sweep.
+
+    Arguments:
+    signal -- signal array, 1D/2D np.array
+    ordinal -- ordinal number, int
+
+    Returns:
+    flipped -- flipped signal if necessary, 1D/2D np.array
+    '''
+
+    if (ordinal % 2):
+        return signal
+    else:
+        return np.flipud(signal)
 
 
 def glue_sweep(y):
@@ -561,17 +591,7 @@ def sub_bg(inten, fg, bg, pts):
         inten_sig = inten[(fg-1)*pts:fg*pts, :]
         inten_bg = inten[(bg-1)*pts:bg*pts, :]
 
-    # Check if background is at an odd-number sweep or an even-number sweep.
-    # If even, the sequency of the intensity needs to be flipped to match
-    # the 1st sweep. Though it is not recommended because the waveforms are
-    # not exactly the same based on experimental results.
-
-    if ((fg % 2) != (bg % 2)):  # fg-bg numbers have opposite parities
-        inten_bg = np.flipud(inten_bg)
-    else:
-        pass
-
-    return inten_sig - inten_bg
+    return flip(inten_sig, fg) - flip(inten_bg, bg)
 
 
 def trunc(freq, inten, delay):
@@ -595,6 +615,31 @@ def trunc(freq, inten, delay):
         inten_tr = inten[delay:, :]
 
     return freq_tr, inten_tr
+
+
+def weight_spline(y):
+    ''' Generate weight for spline interpolation.
+
+    Arguments:
+    y -- intensity array, 1D np.array
+
+    Returns:
+    weight -- weighting array, 1D np.array
+    '''
+
+    # shift y_min to 0 and rescale to range [0, 1]
+    weight = y - y.min()
+    weight = weight / weight.ptp()
+
+    # test strong peak: the median will be falling on the edge of [0, 1]
+    if np.median(weight) > 0.9:  # negative peak
+        weight[weight<0.9] = 0
+    elif np.median(weight) < 0.1: # positive peak
+        weight[weight>0.1] = 0
+    else:                   # most baseline
+        weight = np.ones_like(weight)
+
+    return weight
 
 
 # ---------------- Input Argument Parser ----------------
