@@ -77,18 +77,18 @@ def avg_inten(inten, pts, fg):
     sweep_num = inten.shape[0] // pts
 
     # generate ordinal numbers than match the fg parity
-    ordinal = np.arange(sweep_num)
+    ordinal = np.arange(sweep_num) + 1
     match_parity = ordinal[ordinal % 2 == parity]
 
     # Extract cycles and sum up
     if len(inten.shape)==1:
         inten_ext = np.zeros(pts)
         for i in match_parity:
-            inten_ext += inten[i*pts:(i+1)*pts]
+            inten_ext += inten[(i-1)*pts:i*pts]
     else:
         inten_ext = np.zeros((pts, inten.shape[1]))
         for i in match_parity:
-            inten_ext += inten[i*pts:(i+1)*pts, :]
+            inten_ext += inten[(i-1)*pts:i*pts, :]
 
     # return the average
     return inten_ext / len(match_parity)
@@ -229,7 +229,7 @@ def extract_fg(inten, fg, pts):
     pts   -- number of data points in a single sweep, int
 
     Returns:
-    inten_sig -- Extracted array, 1D/2D np.array (flipped if even fg)
+    inten_sig -- Extracted array, 1D/2D np.array
     '''
 
     if len(inten.shape)==1:     # if intensity is 1D array
@@ -237,7 +237,7 @@ def extract_fg(inten, fg, pts):
     else:                       # if intensity is 2D array
         inten_sig = inten[(fg-1)*pts:fg*pts, :]
 
-    return flip(inten_sig, fg)
+    return inten_sig
 
 
 def flat_wave(freq, inten, nobase=False):
@@ -344,6 +344,7 @@ def load_data(args):
         lo = load_single_file(args.lo[0])
         check_type(lo)
         sweep_num = np.count_nonzero(np.delete(lo*np.roll(lo, 1), 0) < 0)
+        # check the direction of the first sweep
         sweep_up = lo[0] < 0
     else:
         # no lo file, invoke interactive interface
@@ -368,19 +369,20 @@ def load_data(args):
     else:
         center_freq = 0
 
-    freq = reconstr_freq(center_freq, pts, sweep_up=sweep_up, bdwth=bdwth)
-
-    # roll the intensity array if detector delay is specified
-    if args.delay:
-        inten = delay_inten(inten, args.delay[0])
-    else:
-        pass
-
     # get signal sweep number
     if args.fg:
         fg = args.fg[0]
     else:
         fg = 1
+
+    # invert sweep_up for even sweeps
+    if fg % 2:
+        pass
+    else:
+        sweep_up = not sweep_up
+
+    # reconstruct frequency array
+    freq = reconstr_freq(center_freq, pts, sweep_up=sweep_up, bdwth=bdwth)
 
     # get background sweep number
     if args.bg:
@@ -392,6 +394,11 @@ def load_data(args):
     else:       # average intensity if -bg not specified
         inten = avg_inten(inten, pts, fg)
 
+    # roll the intensity array if detector delay is specified
+    if args.delay:
+        inten = delay_inten(inten, args.delay[0])
+    else:
+        pass
 
     # truncate freq & inten array if delay is specified
     if args.delay:
@@ -591,7 +598,7 @@ def sub_bg(inten, fg, bg, pts):
         inten_sig = inten[(fg-1)*pts:fg*pts, :]
         inten_bg = inten[(bg-1)*pts:bg*pts, :]
 
-    return flip(inten_sig, fg) - flip(inten_bg, bg)
+    return inten_sig - flip(inten_bg, fg - bg + 1)
 
 
 def trunc(freq, inten, delay):
